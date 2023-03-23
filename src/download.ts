@@ -151,3 +151,18 @@ export class DownloadProcess {
     });
   }
 }
+
+/**
+ * Creates a {@link DownloadProcess} for short-hand function
+ * instead of using new keywords.
+ *
+ * @param info {@link DownloadInfo} a download information
+ * @param options {@link DownloadProcessOptions} a download options interface
+ * @returns a new instance of download process
+ */
+export function createDownloadProcess(
+  info: DownloadInfo,
+  options?: DownloadProcessOptions
+) {
+  return new DownloadProcess(info, options);
+}
