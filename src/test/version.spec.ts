@@ -1,5 +1,6 @@
 import { version } from "./../index";
 import { expect } from "chai";
+import { VersionPlatform } from "../version";
 
 describe("[unit] manifest -", () => {
   let versionManager: version.VersionManager;
@@ -71,8 +72,8 @@ describe("[unit] manifest -", () => {
       .getPackageInfoAsManager("1.19")
       .fetchPackage();
 
-    expect(versionPkg).to.be.a("object");
-    expect(versionPkg).to.keys([
+    expect(versionPkg.getVersionPackage()).to.be.a("object");
+    expect(versionPkg.getVersionPackage()).to.keys([
       "arguments",
       "assetIndex",
       "assets",
@@ -94,8 +95,8 @@ describe("[unit] manifest -", () => {
       .getPackageInfoAsManager("1.8")
       .fetchPackage();
 
-    expect(oldVersionPkg).to.be.a("object");
-    expect(oldVersionPkg).to.keys([
+    expect(oldVersionPkg.getVersionPackage()).to.be.a("object");
+    expect(oldVersionPkg.getVersionPackage()).to.keys([
       "minecraftArguments",
       "assetIndex",
       "assets",
@@ -119,5 +120,110 @@ describe("[unit] manifest -", () => {
 
     expect(versionManager.getPackageInfoAsManager("b1.1_01").isUnsupported()).to
       .be.true;
+  });
+
+  describe("#VersionPackageManager", () => {
+    let versionPkg: version.VersionPackageManager;
+
+    before(async () => {
+      versionPkg = await versionManager
+        .getPackageInfoAsManager("1.19")
+        .fetchPackage();
+    });
+
+    it(`should build a version package map`, async () => {
+      const librariesMap = versionPkg.getLibrariesMap();
+      expect(librariesMap).to.not.be.undefined;
+
+      const assertionPlatformList: VersionPlatform | string[] = [
+        "none",
+        "linux",
+        "osx",
+        "windows",
+      ];
+      assertionPlatformList.forEach((item: any) => {
+        let obj = librariesMap.get(item);
+        expect(obj).not.to.be.undefined;
+        expect(obj).to.have.length.gt(0);
+      });
+    });
+
+    /**
+     * Do assertion for built version
+     *
+     * @param platform a platform name
+     */
+    const assertLibrariesForPlatform = (platform: version.VersionPlatform) => {
+      let libs = versionPkg.getLibraries({ platform });
+      expect(libs).to.not.be.undefined;
+
+      // Each item must be a library
+      expect(libs).to.be.an("array");
+      expect(libs).length.gt(0);
+      expect(libs[0]).to.haveOwnProperty("name");
+      expect(libs[0]).to.haveOwnProperty("downloads");
+
+      // Must have some platform library
+      expect(
+        libs.some(
+          (library) =>
+            library.rules !== undefined &&
+            library.rules.some(
+              (rule) => rule.os !== undefined && rule.os.name === platform
+            )
+        )
+      ).to.be.true;
+
+      // Must have some general platform
+      expect(libs.some((library) => library.rules === undefined)).to.be.true;
+    };
+
+    it(`should build library for compatible platform`, () => {
+      ["linux", "windows", "osx"].forEach((platform: any) => {
+        assertLibrariesForPlatform(platform);
+      });
+    });
+
+    it(`should build library for non-platform `, () => {
+      let libs = versionPkg.getLibraries();
+      expect(libs).to.not.be.undefined;
+
+      // Each item must be a library
+      expect(libs).to.be.an("array");
+      expect(libs).length.gt(0);
+      expect(libs[0]).to.haveOwnProperty("name");
+      expect(libs[0]).to.haveOwnProperty("downloads");
+    });
+
+    it(`should return asset index reference`, () => {
+      expect(versionPkg.getAssetIndexReference()).not.to.be.undefined;
+      expect(versionPkg.getAssetIndexReference().id).to.be.a("string");
+      expect(versionPkg.getAssetIndexReference().sha1).to.be.a("string");
+      expect(versionPkg.getAssetIndexReference().size).to.be.a("number");
+      expect(versionPkg.getAssetIndexReference().totalSize).to.be.a("number");
+      expect(versionPkg.getAssetIndexReference().url).to.be.a("string");
+    });
+
+    it(`should return is supported or not`, () => {
+      expect(versionPkg.isUnsupported()).to.be.a("boolean");
+    });
+
+    it(`should fetch asset index`, async () => {
+      const assetIndex = await versionPkg.fetchAssetIndex();
+      expect(assetIndex).not.to.be.undefined;
+      expect(assetIndex.objects).not.to.be.undefined;
+      expect(Object.keys(assetIndex.objects).length).gt(0);
+    });
+
+    describe(" requires assetIndex ", () => {
+      let assetIndex: version.AssetIndex | undefined;
+
+      before(async () => {
+        assetIndex = await versionPkg.fetchAssetIndex();
+        expect(assetIndex).not.to.be.undefined;
+        expect(assetIndex.objects).not.to.be.undefined;
+        expect(Object.keys(assetIndex.objects).length).gt(0);
+      });
+    });
   });
 });
