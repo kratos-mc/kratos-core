@@ -1,17 +1,17 @@
 import { expect } from "chai";
-import { exists, remove, stat } from "fs-extra";
+import { exists, remove, stat, readFile } from "fs-extra";
 import * as path from "path";
 import { getTestDirectoryPath } from "./utils/testOutput";
 import * as download from "./../download";
 
-describe("[unit] download -", () => {
-  const mockDownloadInfo: download.DownloadInfo = {
-    destination: path.join(getTestDirectoryPath(), "blocklist"),
-    url: new URL(
-      "https://libraries.minecraft.net/com/mojang/blocklist/1.0.10/blocklist-1.0.10.jar"
-    ),
-  };
+const mockDownloadInfo: download.DownloadInfo = {
+  destination: path.join(getTestDirectoryPath(), "blocklist"),
+  url: new URL(
+    "https://libraries.minecraft.net/com/mojang/blocklist/1.0.10/blocklist-1.0.10.jar"
+  ),
+};
 
+describe("[unit] download -", () => {
   afterEach(async () => {
     await remove(mockDownloadInfo.destination);
     expect(await exists(mockDownloadInfo.destination)).to.be.false;
@@ -211,5 +211,44 @@ describe("[unit] download -", () => {
       let completeDownloadInfo = await processB.startDownload();
       expect(await exists(completeDownloadInfo.destination)).to.be.true;
     }).not.to.throw();
+  });
+});
+
+describe("[unit] download -", () => {
+  describe("DownloadHashObservation", () => {
+    it(`should update a hash object when streaming`, async () => {
+      const hashObservation = new download.DownloadHashObservation("sha1");
+      const process = new download.DownloadProcess(mockDownloadInfo, {
+        hashObservation,
+      });
+
+      await process.startDownload();
+
+      expect(hashObservation).to.not.be.undefined;
+      const hashObservationDigestion = hashObservation.digest();
+
+      expect(hashObservationDigestion.toString("hex")).to.eq(
+        `5c685c5ffa94c4cd39496c7184c1d122e515ecef`
+      );
+
+      expect(hashObservationDigestion.toString("hex")).to.not.eq(``);
+      expect(hashObservation.getHash()).not.to.be.undefined;
+    });
+
+    it(`should create a hash object after downloaded the file`, async () => {
+      const hashObservation = new download.DownloadHashObservation("sha1");
+      const process = new download.DownloadProcess(mockDownloadInfo);
+
+      const dest = (await process.startDownload()).destination;
+
+      hashObservation.update(await readFile(dest));
+
+      expect(hashObservation).to.not.be.undefined;
+      const hashObservationDigestion = hashObservation.digest();
+      expect(hashObservationDigestion.toString("hex")).to.eq(
+        `5c685c5ffa94c4cd39496c7184c1d122e515ecef`
+      );
+      expect(hashObservationDigestion.toString("hex")).to.not.eq(``);
+    });
   });
 });
