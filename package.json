@@ -6,10 +6,10 @@
   "main": "./out/index.js",
   "description": "kratos-core is an open-source, elegant and battery-included Minecraft Launcher API module written in TypeScript in order to be the based of KratosLauncher",
   "scripts": {
-    "compile": "rimraf ./out && swc ./src --out-dir ./out && rimraf ./out/test",
     "test": "mocha ./src/**/*.spec.ts",
     "coverage": "nyc npm run test",
-    "build": "npm run compile && tsc"
+    "build": "rimraf ./out && tsc && swc ./out --only **/*.js --ignore './out/*.d.ts' --out-dir ./out -q",
+    "package": "npm run build && rimraf ./out/test"
   },
   "repository": {
     "type": "git",

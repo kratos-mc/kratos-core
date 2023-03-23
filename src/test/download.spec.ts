@@ -2,7 +2,7 @@ import { expect } from "chai";
 import { exists, remove, stat } from "fs-extra";
 import * as path from "path";
 import { getTestDirectoryPath } from "./utils/testOutput";
-import { download } from "./../index";
+import * as download from "./../download";
 
 describe("[unit] download -", () => {
   const mockDownloadInfo: download.DownloadInfo = {

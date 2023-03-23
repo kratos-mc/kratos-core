@@ -1,5 +1,5 @@
+import { version } from "./../index";
 import { expect } from "chai";
-import { version } from "../index";
 
 describe("[unit] manifest -", () => {
   let versionManager: version.VersionManager;
