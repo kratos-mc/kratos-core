@@ -4,6 +4,7 @@
   "license": "MIT",
   "types": "out/index.d.ts",
   "main": "./out/index.js",
+  "description": "kratos-core is an open-source, elegant and battery-included Minecraft Launcher API module written in TypeScript in order to be the based of KratosLauncher",
   "scripts": {
     "compile": "rimraf ./out && swc ./src --out-dir ./out && rimraf ./out/test",
     "test": "mocha ./src/**/*.spec.ts",
