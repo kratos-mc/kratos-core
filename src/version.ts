@@ -1,4 +1,6 @@
 import fetch from "node-fetch";
+import { PathLike } from "fs-extra";
+import { sep } from "path";
 
 /**
  * Get a minecraft manifest url.
@@ -378,9 +380,52 @@ export interface AssetIndexReference {
 
 export interface AssetIndex {
   objects: {
-    [index: string]: {
-      hash: string;
-      size: number;
-    };
+    [index: string]: AssetMetadata;
   };
+}
+
+export interface AssetMetadata {
+  hash: string;
+  size: number;
+}
+
+export class AssetIndexManager {
+  private assetIndex: AssetIndex;
+  constructor(assetIndex: AssetIndex) {
+    this.assetIndex = assetIndex;
+  }
+
+  public getResourceUrl() {
+    return `https://resources.download.minecraft.net/`;
+  }
+
+  public getAssetIndex() {
+    return this.assetIndex;
+  }
+
+  public getObjects() {
+    return this.assetIndex.objects;
+  }
+
+  public buildAssetDownloadUrl(assetMetadata: AssetMetadata) {
+    const url = new URL(this.getResourceUrl());
+    url.pathname = assetMetadata.hash.slice(0, 2) + "/" + assetMetadata.hash;
+
+    return url;
+  }
+
+  /**
+   * Build a path suffix represents asset file path.
+   *
+   * @param assetMetadata an asset metadata to build a suffix path
+   * @returns a suffix of path to create file
+   */
+  public buildPathSuffix(assetMetadata: AssetMetadata): PathLike {
+    let path = "";
+    path += assetMetadata.hash.slice(0, 2);
+    path += sep;
+    path += assetMetadata.hash;
+
+    return path;
+  }
 }

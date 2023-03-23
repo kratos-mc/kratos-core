@@ -1,6 +1,6 @@
 import { version } from "./../index";
 import { expect } from "chai";
-import { VersionPlatform } from "../version";
+import { AssetIndexManager, AssetMetadata, VersionPlatform } from "../version";
 
 describe("[unit] manifest -", () => {
   let versionManager: version.VersionManager;
@@ -215,7 +215,7 @@ describe("[unit] manifest -", () => {
       expect(Object.keys(assetIndex.objects).length).gt(0);
     });
 
-    describe(" requires assetIndex ", () => {
+    describe("requires assetIndex", () => {
       let assetIndex: version.AssetIndex | undefined;
 
       before(async () => {
@@ -223,6 +223,31 @@ describe("[unit] manifest -", () => {
         expect(assetIndex).not.to.be.undefined;
         expect(assetIndex.objects).not.to.be.undefined;
         expect(Object.keys(assetIndex.objects).length).gt(0);
+      });
+
+      it(`should asset index manager property work`, () => {
+        const assetIndexManager = new AssetIndexManager(assetIndex);
+
+        expect(assetIndexManager.getAssetIndex()).to.be.eq(assetIndex);
+        expect(assetIndexManager.getObjects()).to.be.eq(assetIndex.objects);
+      });
+
+      it(`should create an exactly download url and path suffix`, () => {
+        const assetIndexManager = new AssetIndexManager(assetIndex);
+        const firstAssetMetadata: AssetMetadata =
+          assetIndex.objects[Object.keys(assetIndex.objects)[0]];
+
+        expect(
+          assetIndexManager.buildAssetDownloadUrl(firstAssetMetadata).pathname
+        ).to.include(
+          firstAssetMetadata.hash.slice(0, 2) + "/" + firstAssetMetadata.hash
+        );
+
+        const pathSuffix =
+          assetIndexManager.buildPathSuffix(firstAssetMetadata);
+        expect(pathSuffix).to.include(
+          firstAssetMetadata.hash.slice(0, 2) + "/" + firstAssetMetadata.hash
+        );
       });
     });
   });
