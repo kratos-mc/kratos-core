@@ -8,3 +8,8 @@ rollup.config.dev.js
 rollup.config.js
 yarn-error.log
 examples
+.swcrc
+bun.lockb
+.mocharc.json
+yarn.lock
+tsconfig.json
