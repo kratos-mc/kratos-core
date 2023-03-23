@@ -2,7 +2,8 @@
   "name": "kratos-core",
   "version": "0.0.1",
   "license": "MIT",
-  "types": "dist/types.d.ts",
+  "types": "out/index.d.ts",
+  "main": "./out/index.js",
   "scripts": {
     "compile": "rimraf ./out && swc ./src --out-dir ./out && rimraf ./out/test",
     "test": "mocha ./src/**/*.spec.ts",
