@@ -199,4 +199,17 @@ describe("[unit] download -", () => {
       })
       .catch(done);
   });
+
+  it(`should createDownloadProcess create a new instance of DownloadProcess`, () => {
+    const processA = new download.DownloadProcess(mockDownloadInfo);
+    const processB = download.createDownloadProcess(mockDownloadInfo);
+
+    expect(processB).not.to.be.undefined;
+    expect(processA).to.not.equal(processB);
+
+    expect(async () => {
+      let completeDownloadInfo = await processB.startDownload();
+      expect(await exists(completeDownloadInfo.destination)).to.be.true;
+    }).not.to.throw();
+  });
 });
