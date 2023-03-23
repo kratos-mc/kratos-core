@@ -14,3 +14,4 @@ bun.lockb
 yarn.lock
 tsconfig.json
 .nyc_output
+.github
