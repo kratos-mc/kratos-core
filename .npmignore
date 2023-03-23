@@ -13,3 +13,4 @@ bun.lockb
 .mocharc.json
 yarn.lock
 tsconfig.json
+.nyc_output
