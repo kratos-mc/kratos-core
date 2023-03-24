@@ -40,5 +40,18 @@ describe("[unit] workspace", () => {
     expect(readFileSync(abFile, "utf-8")).to.be.eq(
       "int main (int** arg) { return 1; }"
     );
+
+    // super long name
+    const superLongPath = await assetsWorkspace.writeAsFile(
+      path.join(
+        "super-long-for-some-release-without-aad-jhs-xmashda-danasdha",
+        "none-s-for-some-release-without-aad-jhs-xmashda-danasdha",
+        "nothing-to-shot.txt"
+      ),
+      Buffer.from("Hello world")
+    );
+
+    expect(existsSync(superLongPath)).to.be.true;
+    expect(readFileSync(superLongPath, "utf-8")).to.be.eq("Hello world");
   });
 });
