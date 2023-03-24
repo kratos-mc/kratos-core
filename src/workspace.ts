@@ -8,6 +8,7 @@ import {
   WriteFileOptions,
   writeFile,
   ensureDir,
+  ensureDirSync,
 } from "fs-extra";
 import { join, dirname } from "path";
 import { Preconditions } from "./utils";
@@ -86,6 +87,12 @@ export class Workspace implements WorkspaceInterface {
 
   public createWriter(_path: PathLike, options?: BufferEncoding): WriteStream {
     Preconditions.notNull(_path);
+
+    // Ensure the directory first
+    let dir = dirname(_path.toString());
+    ensureDirSync(dir);
+
+    // Retrieves a write stream
     return createWriteStream(
       join(this.directory.toString(), _path.toString()),
       options
