@@ -2,6 +2,7 @@ import fetch, { RequestInit } from "node-fetch";
 import { createWriteStream } from "fs-extra";
 import { EventEmitter } from "events";
 import TypedEmitter from "typed-emitter";
+import { createHash, Hash } from "crypto";
 
 type DownloadProgressTypeEmitter = {
   error: (error: Error) => void;
@@ -11,6 +12,13 @@ type DownloadProgressTypeEmitter = {
 
 export class DownloadProgress extends (EventEmitter as new () => TypedEmitter<DownloadProgressTypeEmitter>) {
   bytesTransferred: number = 0;
+  size: number = -1;
+
+  constructor(size?: number) {
+    super();
+
+    this.size = size || -1;
+  }
 
   public transferBytes(numOfBytes: number): void {
     this.bytesTransferred += numOfBytes;
@@ -24,6 +32,7 @@ export interface DownloadInfo {
 
 export interface DownloadProcessOptions {
   progress?: DownloadProgress;
+  hashObservation?: DownloadHashObservation;
 }
 
 /**
@@ -130,6 +139,11 @@ export class DownloadProcess {
             this.options.progress.transferBytes(chunk.length);
             this.options.progress.emit("progress", chunk);
           }
+
+          // Streaming into hash observation
+          this.options !== undefined &&
+            this.options.hashObservation !== undefined &&
+            this.options.hashObservation.update(chunk);
         });
 
         // Trigger event when stream is closed
@@ -165,4 +179,96 @@ export function createDownloadProcess(
   options?: DownloadProcessOptions
 ) {
   return new DownloadProcess(info, options);
+}
+
+/**
+ * Represents an observation, consume download data
+ * when passing through {@link DownloadProcess} options.
+ *
+ * For instance, to generate the summation of the file after
+ * downloading the file:
+ *
+ * ```
+ * const hashObservation = new download.DownloadHashObservation("sha1");
+ * const process = new download.DownloadProcess(downloadInfo, {
+ *  hashObservation,
+ * });
+ *
+ * await process.startDownload();
+ *
+ * const digestedHash = hashObservation.digest();
+ * if (digestedHash === 'hash-to-compare') {
+ *    // success to compare the file summation
+ * } else {
+ *    // failed to compare the file summation
+ * }
+ * ```
+ *
+ * Be aware of using a large file when downloading, it might cause memory issues.
+ *
+ * In order to hash a downloadable content, do as follows:
+ *
+ * ```
+ * import {readFileSync} from 'fs';
+ *
+ * // Start downloading a file
+ * const process = new download.DownloadProcess(downloadInfo);
+ * await process.startDownload();
+ *
+ * const filePathDestination = downloadInfo.destination;
+ * const hashObservation = new DownloadHashObservation();
+ *
+ * const fileBuffer =  readFileSync(filePathDestination)
+ * hashObservation.update(fileBuffer);
+ *
+ * const digestedHash = hashObservation.digest();
+ * if (digestedHash === 'hash-to-compare') {
+ *    // success to compare the file summation
+ * } else {
+ *    // failed to compare the file summation
+ * }
+ * ```
+ */
+export class DownloadHashObservation {
+  private hash: Hash;
+  /**
+   * The `algorithm` is dependent on the available
+   * algorithms supported by the version
+   * of OpenSSL on the platform.
+   * Examples are `'sha256'`, `'sha512'`, etc.
+   * On recent releases of OpenSSL, `openssl list -digest-algorithms`
+   *  will display the available digest algorithms.
+   *
+   * @param algorithm the algorithm of hash function
+   */
+  constructor(algorithm: string) {
+    this.hash = createHash(algorithm);
+  }
+
+  /**
+   * Updates data into hash variable.
+   *
+   * @param buffer the buffer to update the hash variable
+   */
+  public update(buffer: Buffer) {
+    this.hash.update(buffer);
+  }
+
+  /**
+   * Retrieves the digested hash as buffer.
+   *
+   * @returns the digested hash as a buffer
+   */
+  public digest(): Buffer {
+    return this.hash.digest();
+  }
+
+  /**
+   * Retrieves the stored hash variables.
+   *
+   * @returns the variable hash that store updated hash
+   */
+  public getHash() {
+    return this.hash;
+  }
 }
