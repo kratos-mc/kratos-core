@@ -1,4 +1,6 @@
 import fetch from "node-fetch";
+import { PathLike } from "fs-extra";
+import { sep } from "path";
 
 /**
  * Get a minecraft manifest url.
@@ -140,8 +142,10 @@ export class VersionPackageInfoManager {
     return this.packageInfo.complianceLevel === 0;
   }
 
-  public async fetchPackage(): Promise<VersionPackage> {
-    return (await fetch(this.packageInfo.url, { method: "get" })).json();
+  public async fetchPackage(): Promise<VersionPackageManager> {
+    return new VersionPackageManager(
+      await (await fetch(this.packageInfo.url, { method: "get" })).json()
+    );
   }
 }
 
@@ -153,15 +157,13 @@ export interface VersionPackage {
     game: [
       | string
       | {
-          rules: [
-            {
-              action: "allow" | "disallow";
-              features: {
-                has_custom_resolution?: true;
-                is_demo_user?: true;
-              };
-            }
-          ];
+          rules: {
+            action: "allow" | "disallow";
+            features: {
+              has_custom_resolution?: true;
+              is_demo_user?: true;
+            };
+          }[];
           value: string | string[];
         }
     ];
@@ -169,20 +171,39 @@ export interface VersionPackage {
     jvm: [
       | string
       | {
-          rules: [
-            {
-              action: "allow" | "disallow";
-              os: {
-                name?: VersionPlatform;
-                version?: RegExp | string;
-                arch?: "x86" | string;
-              };
-            }
-          ];
+          rules: {
+            action: "allow" | "disallow";
+            os: {
+              name?: VersionPlatform;
+              version?: RegExp | string;
+              arch?: "x86" | string;
+            };
+          }[];
           value: string[] | string;
         }
     ];
   };
+
+  /**
+   * An object that point to asset index file.
+   * Asset index file is a JSON-formatted file that contains link to asset
+   *
+   * ```json
+   * {
+   *  "objects": {
+   *    "icons/icon_16x16.png": {
+   *      "hash": "a0d43b09bbd3a65039e074cf4699175b0c4724b8",
+   *      "size": 947
+   *    },
+   *  "icons/icon_32x32.png": {
+   *    "hash": "41b16434923a097ab3e037eb4cc961b5372c149a",
+   *    "size": 2639
+   *    }
+   * }
+   *
+   * ```
+   */
+  assetIndex: AssetIndexReference;
   assets: string;
   complianceLevel: number;
   downloads: {
@@ -197,39 +218,7 @@ export interface VersionPackage {
     component: string;
     majorVersion: number;
   };
-  libraries: [
-    {
-      downloads: {
-        artifact?: {
-          path: string;
-          sha1: string;
-          size: number;
-          url: URL;
-        };
-        classifier?: {
-          [index: string]: {
-            // TODO: add bundler
-          };
-        };
-      };
-      extract?: {
-        exclude: string[];
-      };
-      name: string;
-      natives?: {
-        [index: string]: string;
-      };
-      rules?: [
-        {
-          action: "allow" | "disallow";
-          os?: {
-            name?: VersionPlatform;
-            version?: RegExp;
-          };
-        }
-      ];
-    }
-  ];
+  libraries: VersionPackageLibrary[];
   logging?: {
     client: {
       argument: string;
@@ -248,4 +237,195 @@ export interface VersionPackage {
   releaseTime: string;
   time: string;
   type: "snapshot" | "release";
+}
+
+export interface VersionPackageLibrary {
+  downloads: {
+    artifact?: {
+      path: string;
+      sha1: string;
+      size: number;
+      url: URL;
+    };
+    classifier?: {
+      [index: string]: {
+        // TODO: add bundler
+      };
+    };
+  };
+  extract?: {
+    exclude: string[];
+  };
+  name: string;
+  natives?: {
+    [index: string]: string;
+  };
+  rules?: {
+    action: "allow" | "disallow";
+    os?: {
+      name?: VersionPlatform;
+      version?: RegExp;
+    };
+  }[];
+}
+export class VersionPackageManager {
+  private versionPackage: VersionPackage;
+
+  private librariesMap:
+    | Map<VersionPlatform | "none", VersionPackageLibrary[]>
+    | undefined;
+  constructor(versionPackage: VersionPackage) {
+    this.versionPackage = versionPackage;
+  }
+
+  public getVersionPackage() {
+    return this.versionPackage;
+  }
+
+  private buildLibrariesMap() {
+    const allPlatforms: VersionPlatform[] = ["linux", "osx", "windows"];
+    this.librariesMap = new Map<
+      VersionPlatform | "none",
+      VersionPackageLibrary[]
+    >();
+
+    // initialize the map
+    allPlatforms.forEach((platform) => {
+      this.librariesMap.set(platform, new Array());
+    });
+    this.librariesMap.set("none", new Array());
+
+    // distribute map
+    for (let library of this.versionPackage.libraries) {
+      // If the library have no rule
+      if (!library.rules || library.rules.length === 0) {
+        this.librariesMap.get("none").push(library);
+        continue;
+      }
+
+      // Otherwise, add into a platform library
+      for (let libraryRule of library.rules) {
+        const platform = libraryRule.os.name;
+        const action = libraryRule.action;
+
+        if (action === "allow") {
+          this.librariesMap.get(platform).push(library);
+        }
+      }
+    }
+  }
+
+  public getLibrariesMap() {
+    if (this.versionPackage !== undefined) {
+      this.buildLibrariesMap();
+    }
+    return this.librariesMap;
+  }
+
+  public getLibraries(options?: {
+    platform: VersionPlatform;
+  }): VersionPackageLibrary[] {
+    let libraries: VersionPackageLibrary[] = [];
+    if (options !== undefined && options.platform !== undefined) {
+      libraries.push(...this.getLibrariesMap().get(options.platform));
+    } else {
+      ["linux", "osx", "windows"].forEach((ele: any) =>
+        libraries.push(...this.getLibrariesMap().get(ele))
+      );
+    }
+    libraries.push(...this.getLibrariesMap().get("none"));
+    return libraries;
+  }
+
+  public getAssetIndexReference() {
+    return this.versionPackage.assetIndex;
+  }
+
+  public isUnsupported(): boolean {
+    return this.versionPackage.complianceLevel === 0;
+  }
+
+  public async fetchAssetIndex(): Promise<AssetIndex> {
+    return (await fetch(this.versionPackage.assetIndex.url)).json();
+  }
+}
+
+/**
+ * Represents as JSON type file that point to
+ * an asset index file, should be cached.
+ *
+ */
+export interface AssetIndexReference {
+  /**
+   * The asset index id
+   */
+  id: string;
+  /**
+   * The checksum for the reference file
+   */
+  sha1: string;
+  /**
+   * The size of the resource file
+   */
+  size: number;
+  /**
+   * The total size of all assets
+   */
+  totalSize: number;
+  /**
+   * The url of asset index
+   */
+  url: URL;
+}
+
+export interface AssetIndex {
+  objects: {
+    [index: string]: AssetMetadata;
+  };
+}
+
+export interface AssetMetadata {
+  hash: string;
+  size: number;
+}
+
+export class AssetIndexManager {
+  private assetIndex: AssetIndex;
+  constructor(assetIndex: AssetIndex) {
+    this.assetIndex = assetIndex;
+  }
+
+  public getResourceUrl() {
+    return `https://resources.download.minecraft.net/`;
+  }
+
+  public getAssetIndex() {
+    return this.assetIndex;
+  }
+
+  public getObjects() {
+    return this.assetIndex.objects;
+  }
+
+  public buildAssetDownloadUrl(assetMetadata: AssetMetadata) {
+    const url = new URL(this.getResourceUrl());
+    url.pathname = assetMetadata.hash.slice(0, 2) + "/" + assetMetadata.hash;
+
+    return url;
+  }
+
+  /**
+   * Build a path suffix represents asset file path.
+   *
+   * @param assetMetadata an asset metadata to build a suffix path
+   * @returns a suffix of path to create file
+   */
+  public buildPathSuffix(assetMetadata: AssetMetadata): PathLike {
+    let path = "";
+    path += assetMetadata.hash.slice(0, 2);
+    path += sep;
+    path += assetMetadata.hash;
+
+    return path;
+  }
 }
