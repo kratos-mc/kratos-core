@@ -145,3 +145,4 @@ dist
 
 out
 .DS_Store
+test-output
