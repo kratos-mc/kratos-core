@@ -3,12 +3,11 @@ import {
   mkdirSync,
   existsSync,
   PathLike,
-  exists,
   createWriteStream,
   WriteStream,
   WriteFileOptions,
   writeFile,
-  emptyDir,
+  ensureDir,
 } from "fs-extra";
 import { join, dirname } from "path";
 import { Preconditions } from "./utils";
@@ -66,12 +65,6 @@ export class Workspace implements WorkspaceInterface {
     !existsSync(this.directory) && mkdirSync(this.directory);
   }
 
-  private async loadMainDirectory(): Promise<void> {
-    if (!(await exists(this.directory))) {
-      await mkdir(this.directory);
-    }
-  }
-
   public getDirectory(): PathLike {
     return this.directory;
   }
@@ -79,19 +72,16 @@ export class Workspace implements WorkspaceInterface {
   public async makeDirectory(_path: PathLike): Promise<string> {
     Preconditions.notNull(_path);
     const joinedPath = join(this.directory.toString(), _path.toString());
-    this.fillPath(joinedPath);
+    this.ensurePath(joinedPath);
 
     await mkdir(join(this.directory.toString(), _path.toString()));
 
     return joinedPath;
   }
 
-  private async fillPath(_path: PathLike) {
+  private async ensurePath(_path: PathLike) {
     let dir = dirname(_path.toString());
-
-    if (!(await exists(dir))) {
-      
-    }
+    await ensureDir(dir);
   }
 
   public createWriter(_path: PathLike, options?: BufferEncoding): WriteStream {
@@ -111,7 +101,7 @@ export class Workspace implements WorkspaceInterface {
     Preconditions.notNull(data);
 
     const _path = join(this.getDirectory().toString(), writePath.toString());
-    this.fillPath(_path);
+    await this.ensurePath(_path);
     await writeFile(_path, data, options);
 
     return _path;
