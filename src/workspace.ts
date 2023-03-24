@@ -88,15 +88,13 @@ export class Workspace implements WorkspaceInterface {
   public createWriter(_path: PathLike, options?: BufferEncoding): WriteStream {
     Preconditions.notNull(_path);
 
+    const _path1 = join(this.getDirectory().toString(), _path.toString());
     // Ensure the directory first
-    let dir = dirname(_path.toString());
+    let dir = dirname(_path1.toString());
     ensureDirSync(dir);
 
     // Retrieves a write stream
-    return createWriteStream(
-      join(this.directory.toString(), _path.toString()),
-      options
-    );
+    return createWriteStream(_path1, options);
   }
 
   public async writeAsFile(
@@ -135,6 +133,18 @@ export class AssetWorkspace extends Workspace {
     super(directory);
   }
 
+  public getObjectsPath() {
+    return join(this.getDirectory().toString(), "objects");
+  }
+
+  /**
+   * Creates a write stream using assets file path format.
+   * An asset file is stored in `/<first 2 letter of hash>/<full hash>`.
+   *
+   * @param hash an asset hash property to set file name
+   * @param options an options for create a write stream
+   * @returns a writable stream from {@link createWriteStream}
+   */
   public createAssetWriter(
     hash: string,
     options?: BufferEncoding
