@@ -20,6 +20,13 @@
     "email": "nhnguyen.forwork@gmail.com",
     "url": "https://github.com/PlayerNguyen/"
   },
+  "keywords": [
+    "minecraft",
+    "minecraft-launcher",
+    "minecraft-launcher-api",
+    "kratos",
+    "kratos-launcher"
+  ],
   "bugs": {
     "url": "https://github.com/kratos-mc/kratos-core/issues"
   },

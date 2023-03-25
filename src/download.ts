@@ -4,12 +4,18 @@ import { EventEmitter } from "events";
 import TypedEmitter from "typed-emitter";
 import { createHash, Hash } from "crypto";
 
+/**
+ * Represents emit event for {@link DownloadProgress}
+ */
 type DownloadProgressTypeEmitter = {
   error: (error: Error) => void;
   finish: (info: DownloadInfo) => void;
   progress: (chunk: Buffer) => void;
 };
 
+/**
+ * Represents a download progress for file.
+ */
 export class DownloadProgress extends (EventEmitter as new () => TypedEmitter<DownloadProgressTypeEmitter>) {
   bytesTransferred: number = 0;
   size: number = -1;
@@ -19,19 +25,42 @@ export class DownloadProgress extends (EventEmitter as new () => TypedEmitter<Do
 
     this.size = size || -1;
   }
-
+  /**
+   * Updates the counter that is counting a bytes.
+   *
+   * @param numOfBytes a number of bytes that already transferred
+   */
   public transferBytes(numOfBytes: number): void {
     this.bytesTransferred += numOfBytes;
   }
 }
 
+/**
+ * Represents a pre-download information.
+ */
 export interface DownloadInfo {
+  /**
+   * The url of the file to request HTTP Get method
+   */
   url: URL;
+  /**
+   * The destination of the file to save into
+   */
   destination: string;
 }
 
+/**
+ * Represents an option for a {@link DownloadProcess} class.
+ */
 export interface DownloadProcessOptions {
+  /**
+   * The progress of downloading task, see {@link DownloadProgress}
+   */
   progress?: DownloadProgress;
+  /**
+   * The hash observation class to observe the downloading task
+   * and return the hash (checksum) of downloading file.
+   */
   hashObservation?: DownloadHashObservation;
 }
 
@@ -70,6 +99,11 @@ export class DownloadProcess {
   private info: DownloadInfo;
   private options: DownloadProcessOptions | undefined;
 
+  /**
+   *
+   * @param info the download information such as url, and destination
+   * @param options an options for download
+   */
   constructor(info: DownloadInfo, options?: DownloadProcessOptions) {
     this.info = info;
     this.options = options;

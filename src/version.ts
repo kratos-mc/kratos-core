@@ -315,6 +315,12 @@ export class VersionPackageManager {
     }
   }
 
+  /**
+   * Retrieves the library map. If the map is undefined,
+   * the function will construct it before return.
+   *
+   * @returns a {@link Map} object
+   */
   public getLibrariesMap() {
     if (this.versionPackage !== undefined) {
       this.buildLibrariesMap();
@@ -384,29 +390,89 @@ export interface AssetIndex {
   };
 }
 
+/**
+ * Represents asset general information like hash and size.
+ */
 export interface AssetMetadata {
+  /**
+   * The hash of the current file, encrypted using SHA1 algorithm
+   */
   hash: string;
+  /**
+   * The size of the asset
+   */
   size: number;
 }
 
+/**
+ * Represents the asset index controller.
+ *
+ * AssetIndexManager can take the {@link AssetIndex} (asset index object)
+ * and give powerful utilities functions in order to quickly and easily handle it.
+ *
+ *```
+ * const assetIndex: AssetIndex = await versionPkg.fetchAssetIndex();
+ *
+ * const assetIndexManager = new AssetIndexManager(assetIndex);
+ *
+ * assetIndexManager.getAssetIndex(); // returns the assetIndex object that you passed from constructor param
+ * ```
+ *
+ */
 export class AssetIndexManager {
   private assetIndex: AssetIndex;
   constructor(assetIndex: AssetIndex) {
     this.assetIndex = assetIndex;
   }
 
+  /**
+   * The resource url to download resource which sponsored by Minecraft.
+   *
+   * @returns the resource url provided from Minecraft
+   */
   public getResourceUrl() {
     return `https://resources.download.minecraft.net/`;
   }
 
+  /**
+   * Retrieves the asset index ({@link AssetIndex}).
+   *
+   * @returns the asset index
+   */
   public getAssetIndex() {
     return this.assetIndex;
   }
 
+  /**
+   * The objects value inside assetIndex as a list of object represents as an sub-object struct.
+   *
+   * In most case, the objects value inside assetIndex will look like
+   *
+   * ```
+   * objects: {
+   *    "asset-a": {
+   *        "hash": ...,
+   *        "size": ...,
+   *    },
+   *    "asset-b": {
+   *        "hash": ...,
+   *        "size": ...,
+   *    },
+   * }
+   * ```
+   *
+   * @returns the objects value.
+   */
   public getObjects() {
     return this.assetIndex.objects;
   }
 
+  /**
+   * Create a download url for the asset from {@link AssetMetadata}.
+   *
+   * @param assetMetadata the asset metadata to get a hash
+   * @returns the asset downloadable resource
+   */
   public buildAssetDownloadUrl(assetMetadata: AssetMetadata) {
     const url = new URL(this.getResourceUrl());
     url.pathname = assetMetadata.hash.slice(0, 2) + "/" + assetMetadata.hash;
