@@ -1,9 +1,14 @@
-import { LauncherWorkspace } from "../workspace";
+import { LauncherWorkspace, VersionWorkspace } from "../workspace";
 import { getTestDirectoryPath } from "./utils/testOutput";
 import * as path from "path";
-import { existsSync, readFileSync } from "fs-extra";
+import { emptyDir, existsSync, readFileSync, remove } from "fs-extra";
 import { expect } from "chai";
+import { use } from "chai";
+import * as chaiAsPromised from "chai-as-promised";
 import fetch from "node-fetch";
+import { version } from "..";
+
+use(chaiAsPromised);
 
 describe("[unit] workspace", () => {
   let launcherWorkspace: LauncherWorkspace;
@@ -86,5 +91,79 @@ describe("[unit] workspace", () => {
     );
 
     expect(existsSync(destination)).to.be.true;
+  });
+
+  describe(`VersionWorkspace`, () => {
+    let versionWorkspace: VersionWorkspace | undefined;
+
+    before(async () => {
+      versionWorkspace = launcherWorkspace.getVersionWorkspace();
+
+      expect(await versionWorkspace.existsManifest()).to.be.false;
+      await emptyDir(versionWorkspace.getDirectory().toString());
+
+      expect(versionWorkspace.readManifest()).to.be.rejected;
+    });
+
+    it(`should return a path of a manifest file`, () => {
+      expect(versionWorkspace.getManifestPath()).to.be.eq(
+        path.join(
+          launcherWorkspace.getDirectory().toString(),
+          "versions",
+          "version_manifest_v2.json"
+        )
+      );
+    });
+
+    it(`should be able to do operation in manifest file`, async () => {
+      // Write invalid file
+      await versionWorkspace.writeManifest(Buffer.from("Hello world"));
+      expect(await versionWorkspace.existsManifest()).to.be.true;
+      expect(versionWorkspace.readManifest()).to.rejected;
+
+      // Write a json file
+      await versionWorkspace.writeManifest(
+        Buffer.from(JSON.stringify({ a: "b" }).toString())
+      );
+      expect(await versionWorkspace.existsManifest()).to.be.true;
+      expect(versionWorkspace.readManifest()).to.eventually.have.property("a");
+    });
+
+    it(`should be able to download a manifest and put as a file`, async () => {
+      const manifest = await (
+        await version.fetchVersionManifest()
+      ).getRawManifest();
+
+      await versionWorkspace.writeManifest(
+        Buffer.from(JSON.stringify(manifest))
+      );
+
+      expect(versionWorkspace.readManifest()).to.eventually.eq(manifest);
+    });
+
+    it(`should be able to download a version package and set as a file`, async () => {
+      const versionPackage = await (
+        await (await version.fetchVersionManifest())
+          .getLatestReleasePackageInfo()
+          .fetchPackage()
+      ).getVersionPackage();
+
+      expect(versionWorkspace.hasPackageVersion(versionPackage.id)).that.be
+        .eventually.false;
+      expect(versionWorkspace.readVersionPackage(versionPackage.id)).to
+        .eventually.rejected;
+
+      await versionWorkspace.writeVersionPackage(
+        versionPackage.id,
+        Buffer.from(JSON.stringify(versionPackage))
+      );
+
+      expect(versionWorkspace.hasPackageVersion(versionPackage.id)).to
+        .eventually.be.true;
+
+      expect(
+        versionWorkspace.readVersionPackage(versionPackage.id)
+      ).to.eventually.eq(versionPackage);
+    });
   });
 });
