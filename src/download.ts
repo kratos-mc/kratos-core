@@ -129,6 +129,12 @@ export class DownloadProcess {
     return new Promise<DownloadInfo>(async (resolve, reject) => {
       try {
         const writer = createWriteStream(this.info.destination);
+
+        // Reject the promise when create writer got error
+        writer.on("error", async (error) => {
+          return reject(error);
+        });
+
         // Create a fetch
         const response = await fetch(this.info.url, {
           method: "get",
