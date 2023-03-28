@@ -346,5 +346,69 @@ describe("[unit] download -", () => {
         expect(exists(mockDownloadInfo.destination)).to.eventually.true,
       ]);
     });
+
+    it(`should emit success when successfully download`, async () => {
+      const downloadInfo = createMockDownloadInformation();
+      const observer = new download.DownloadMatchingObserver();
+      const process = download
+        .createAttemptDownload(
+          downloadInfo,
+          "5c685c5ffa94c4cd39496c7184c1d122e515ecef",
+          {
+            observer,
+          }
+        )
+        .startDownload();
+
+      const promise = new Promise((res) =>
+        observer.on("success", (info) => res(info))
+      );
+
+      return Promise.all([
+        expect(promise).to.eventually.be.deep.eq(downloadInfo),
+        expect(exists(downloadInfo.destination)).to.eventually.be.true,
+        expect(process).to.eventually.be.deep.eq(downloadInfo),
+      ]);
+    });
+
+    it(`should emit retry when generate an invalid hash-file`, () => {
+      const downloadInfo = createMockDownloadInformation();
+      const observer = new download.DownloadMatchingObserver();
+      const process = download
+        .createAttemptDownload(downloadInfo, "", {
+          observer,
+        })
+        .startDownload();
+
+      const promise = new Promise((res) =>
+        observer.on("retry", (info) => res(info))
+      );
+
+      return Promise.all([
+        expect(promise).to.eventually.be.deep.eq(downloadInfo),
+        expect(exists(downloadInfo.destination)).to.eventually.be.true,
+        expect(process).to.eventually.be.rejectedWith(Error, /Maximum attempt/),
+      ]);
+    });
+
+    it(`should emit corrupted when failed to download the file (file is invalid)`, () => {
+      const downloadInfo = createMockDownloadInformation();
+      const observer = new download.DownloadMatchingObserver();
+      const process = download
+        .createAttemptDownload(downloadInfo, "", {
+          observer,
+        })
+        .startDownload();
+
+      const promise = new Promise((res) =>
+        observer.on("corrupted", (info) => res(info))
+      );
+
+      return Promise.all([
+        expect(promise).to.eventually.be.deep.eq(downloadInfo),
+        expect(exists(downloadInfo.destination)).to.eventually.be.true,
+        expect(process).to.eventually.be.rejectedWith(Error, /Maximum attempt/),
+      ]);
+    });
   });
 });
