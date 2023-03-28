@@ -347,7 +347,7 @@ type DownloadMatchingEmitter = {
    * @param process the current process that emitter is running on
    * @returns a void function
    */
-  corrupted: (process: DownloadMatchingProcess) => void;
+  corrupted: (info: DownloadInfo, process: DownloadMatchingProcess) => void;
   /**
    * Emits when the process is complete stream the file.
    *
@@ -381,6 +381,10 @@ export interface DownloadMatchingOptions {
    * The download progress to follow progress of the process.
    */
   progress?: DownloadProgress;
+  /**
+   * The observer (event listener) to listen to the event from {@link DownloadMatchingProcess}.
+   */
+  observer?: DownloadMatchingObserver;
 }
 
 /**
@@ -470,7 +474,19 @@ export class DownloadMatchingProcess {
         // }
 
         if (currentObservation.digest().toString("hex") === this.hashValue) {
+          // Emit success event
+          if (
+            this.options !== undefined &&
+            this.options.observer !== undefined
+          ) {
+            this.options.observer.emit("success", this.info, this);
+          }
           return resolve(this.info);
+        }
+
+        // Emit retry event
+        if (this.options !== undefined && this.options.observer !== undefined) {
+          this.options.observer.emit("retry", this.info, this.attempt, this);
         }
 
         this.stack.push(this.createSubprocess());
@@ -479,6 +495,9 @@ export class DownloadMatchingProcess {
 
       // If reach the limit
       if (this.attempt === maxAttempt) {
+        if (this.options !== undefined && this.options.observer !== undefined) {
+          this.options.observer.emit("corrupted", this.info, this);
+        }
         // Then reject the attempt
         return reject(
           new Error(
