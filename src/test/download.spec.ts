@@ -11,6 +11,23 @@ const mockDownloadInfo: download.DownloadInfo = {
   ),
 };
 
+let currentMockFile = 0;
+const createMockDownloadInformation = () => {
+  currentMockFile++;
+  const obj = {
+    destination: path.join(
+      getTestDirectoryPath(),
+      currentMockFile.toString() + ".data"
+    ),
+    url: new URL(
+      "https://libraries.minecraft.net/com/mojang/blocklist/1.0.10/blocklist-1.0.10.jar"
+    ),
+  };
+  console.log(`creating mock file with destination ${obj.destination}`);
+
+  return obj;
+};
+
 describe("[unit] download -", () => {
   afterEach(async () => {
     await remove(mockDownloadInfo.destination);
@@ -215,6 +232,11 @@ describe("[unit] download -", () => {
 });
 
 describe("[unit] download -", () => {
+  afterEach(async () => {
+    await remove(mockDownloadInfo.destination);
+    expect(await exists(mockDownloadInfo.destination)).to.be.false;
+  });
+
   describe("DownloadHashObservation", () => {
     it(`should update a hash object when streaming`, async () => {
       const hashObservation = new download.DownloadHashObservation("sha1");
@@ -249,6 +271,144 @@ describe("[unit] download -", () => {
         `5c685c5ffa94c4cd39496c7184c1d122e515ecef`
       );
       expect(hashObservationDigestion.toString("hex")).to.not.eq(``);
+    });
+  });
+
+  describe("DownloadMatchingProcess", () => {
+    it(`should retry to download many times and reject`, async function () {
+      const _mockInfo = createMockDownloadInformation();
+      const mismatchingProcess = new download.DownloadMatchingProcess(
+        _mockInfo,
+        "great-to-have-a-hash",
+        {
+          algorithm: "sha1",
+        }
+      );
+
+      return Promise.all([
+        expect(mismatchingProcess.startDownload()).to.eventually.rejectedWith(
+          Error,
+          /Maximum attempt/
+        ),
+      ]);
+    });
+    it(`should retry with large maxAttempt`, async function () {
+      const _mockInfo = createMockDownloadInformation();
+      const mismatchingProcess = new download.DownloadMatchingProcess(
+        _mockInfo,
+        "random-test",
+        {
+          algorithm: "sha1",
+          maxAttempt: 20,
+        }
+      );
+
+      return Promise.all([
+        // Must reject
+        expect(mismatchingProcess.startDownload()).to.eventually.rejectedWith(
+          Error,
+          /Maximum attempt/
+        ),
+      ]);
+    });
+
+    it(`should resolve the download file`, async () => {
+      const _mockInfo = createMockDownloadInformation();
+      const matchProcess = new download.DownloadMatchingProcess(
+        _mockInfo,
+        "5c685c5ffa94c4cd39496c7184c1d122e515ecef"
+      );
+
+      return Promise.all([
+        expect(matchProcess.startDownload()).to.eventually.have.keys([
+          "destination",
+          "url",
+        ]),
+
+        expect(exists(_mockInfo.destination)).to.eventually.true,
+      ]);
+    });
+
+    it(`should download using createAttemptDownload`, async function () {
+      const downloader = download.createAttemptDownload(
+        mockDownloadInfo,
+        "5c685c5ffa94c4cd39496c7184c1d122e515ecef"
+      );
+
+      expect(downloader.startDownload()).to.eventually.have.keys([
+        "destination",
+        "url",
+      ]);
+
+      expect(downloader.getDownloadInfo()).not.to.be.undefined;
+
+      return Promise.all([
+        expect(exists(mockDownloadInfo.destination)).to.eventually.true,
+      ]);
+    });
+
+    it(`should emit success when successfully download`, async () => {
+      const downloadInfo = createMockDownloadInformation();
+      const observer = new download.DownloadMatchingObserver();
+      const process = download
+        .createAttemptDownload(
+          downloadInfo,
+          "5c685c5ffa94c4cd39496c7184c1d122e515ecef",
+          {
+            observer,
+          }
+        )
+        .startDownload();
+
+      const promise = new Promise((res) =>
+        observer.on("success", (info) => res(info))
+      );
+
+      return Promise.all([
+        expect(promise).to.eventually.be.deep.eq(downloadInfo),
+        expect(exists(downloadInfo.destination)).to.eventually.be.true,
+        expect(process).to.eventually.be.deep.eq(downloadInfo),
+      ]);
+    });
+
+    it(`should emit retry when generate an invalid hash-file`, () => {
+      const downloadInfo = createMockDownloadInformation();
+      const observer = new download.DownloadMatchingObserver();
+      const process = download
+        .createAttemptDownload(downloadInfo, "", {
+          observer,
+        })
+        .startDownload();
+
+      const promise = new Promise((res) =>
+        observer.on("retry", (info) => res(info))
+      );
+
+      return Promise.all([
+        expect(promise).to.eventually.be.deep.eq(downloadInfo),
+        expect(exists(downloadInfo.destination)).to.eventually.be.true,
+        expect(process).to.eventually.be.rejectedWith(Error, /Maximum attempt/),
+      ]);
+    });
+
+    it(`should emit corrupted when failed to download the file (file is invalid)`, () => {
+      const downloadInfo = createMockDownloadInformation();
+      const observer = new download.DownloadMatchingObserver();
+      const process = download
+        .createAttemptDownload(downloadInfo, "", {
+          observer,
+        })
+        .startDownload();
+
+      const promise = new Promise((res) =>
+        observer.on("corrupted", (info) => res(info))
+      );
+
+      return Promise.all([
+        expect(promise).to.eventually.be.deep.eq(downloadInfo),
+        expect(exists(downloadInfo.destination)).to.eventually.be.true,
+        expect(process).to.eventually.be.rejectedWith(Error, /Maximum attempt/),
+      ]);
     });
   });
 });

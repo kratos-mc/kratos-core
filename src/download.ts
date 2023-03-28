@@ -1,5 +1,6 @@
+import { Preconditions } from "./utils";
 import fetch, { RequestInit } from "node-fetch";
-import { createWriteStream } from "fs-extra";
+import { createWriteStream, exists, remove } from "fs-extra";
 import { EventEmitter } from "events";
 import TypedEmitter from "typed-emitter";
 import { createHash, Hash } from "crypto";
@@ -129,6 +130,12 @@ export class DownloadProcess {
     return new Promise<DownloadInfo>(async (resolve, reject) => {
       try {
         const writer = createWriteStream(this.info.destination);
+
+        // Reject the promise when create writer got error
+        writer.on("error", async (error) => {
+          return reject(error);
+        });
+
         // Create a fetch
         const response = await fetch(this.info.url, {
           method: "get",
@@ -197,6 +204,15 @@ export class DownloadProcess {
         return reject(err);
       }
     });
+  }
+
+  /**
+   * Retrieves the local download options.
+   *
+   * @returns the download options from parameter
+   */
+  public getOptions(): DownloadProcessOptions | undefined {
+    return this.options;
   }
 }
 
@@ -305,4 +321,211 @@ export class DownloadHashObservation {
   public getHash() {
     return this.hash;
   }
+}
+
+/**
+ * Represents a emitter for {@link DownloadMatchingProcess}
+ */
+type DownloadMatchingEmitter = {
+  /**
+   * Emits when the checksum of the file is not matching with provided hash.
+   *
+   *
+   * @param info the information of the current downloading process
+   * @param attempt the number of attempt
+   * @param process the current process
+   * @returns a void function
+   */
+  retry: (
+    info: DownloadInfo,
+    attempt: number,
+    process: DownloadMatchingProcess
+  ) => void;
+  /**
+   * Emits when the process is reached to maximum attempt and the hash is invalid.
+   *
+   * @param process the current process that emitter is running on
+   * @returns a void function
+   */
+  corrupted: (info: DownloadInfo, process: DownloadMatchingProcess) => void;
+  /**
+   * Emits when the process is complete stream the file.
+   *
+   * @param info download information of the current process
+   * @param process the current process that emitter is running on
+   * @returns a void function
+   */
+  success: (info: DownloadInfo, process: DownloadMatchingProcess) => void;
+};
+
+/**
+ * Represents an observer for {@link DownloadMatchingProcess} object.
+ */
+export class DownloadMatchingObserver extends (EventEmitter as new () => TypedEmitter<DownloadMatchingEmitter>) {}
+
+/**
+ * Represents an option for {@link DownloadMatchingProcess}.
+ */
+export interface DownloadMatchingOptions {
+  /**
+   * The hash algorithm to make a hash.
+   * The hash is making using {@link DownloadHashObservation}.
+   *
+   */
+  algorithm?: string;
+  /**
+   * The number of attempt before reject the download file.
+   */
+  maxAttempt?: number;
+  /**
+   * The download progress to follow progress of the process.
+   */
+  progress?: DownloadProgress;
+  /**
+   * The observer (event listener) to listen to the event from {@link DownloadMatchingProcess}.
+   */
+  observer?: DownloadMatchingObserver;
+}
+
+/**
+ * Represents a download process using checksum function to check the integrity of the file
+ * before save it. 
+ * 
+ * ```js
+ *  const mismatchingProcess = new download.DownloadMatchingProcess(
+        {
+          destination: 'some/path/to/file.f',
+          url: new Url("https://google.com/")
+        },
+        "this-is-a-provided-sha-to-check",
+        {
+          algorithm: "sha1",
+          maxAttempt: 3,
+        }
+      );
+ * 
+
+    // Using then
+    mismatchingProcess
+      .startDownload()
+      .then((downloadInfo) => {
+        console.log(downloadInfo.destination); // output: some/path/to/file.f
+      })
+
+    // Using async/await
+    (await mismatchingProcess.startDownload()).destination; // output: some/path/to/file.f
+ * ```
+ * 
+ */
+export class DownloadMatchingProcess {
+  private readonly info: DownloadInfo;
+  private readonly hashValue: string;
+  private readonly options: DownloadMatchingOptions | undefined;
+  private stack: DownloadProcess[] = [];
+  private attempt: number;
+
+  constructor(
+    info: DownloadInfo,
+    hashValue: string,
+    options?: DownloadMatchingOptions
+  ) {
+    Preconditions.notNull(info);
+    Preconditions.notNull(hashValue);
+
+    this.info = info;
+    this.hashValue = hashValue;
+    this.options = options;
+
+    this.attempt = 0;
+  }
+
+  private createSubprocess() {
+    const observer = new DownloadHashObservation(
+      (this.options && this.options.algorithm) || "sha1"
+    );
+
+    return createDownloadProcess(this.info, {
+      hashObservation: observer,
+      progress: (this.options && this.options.progress) || undefined,
+    });
+  }
+
+  /**
+   * Starts downloading the current pending process.
+   *
+   * @returns the downloaded file information
+   */
+  public async startDownload(init?: RequestInit): Promise<DownloadInfo> {
+    return new Promise(async (resolve, reject) => {
+      if (this.stack.length === 0) {
+        this.stack.push(this.createSubprocess());
+      }
+
+      const maxAttempt = (this.options && this.options.maxAttempt) || 3;
+      while (this.attempt < maxAttempt) {
+        const chunk: DownloadProcess = this.stack.pop();
+        // console.log(this.attempt);
+
+        await chunk.startDownload(init);
+        const currentObservation = chunk.getOptions().hashObservation;
+
+        // if (currentObservation === undefined) {
+        //   return resolve(this.info);
+        // }
+
+        if (currentObservation.digest().toString("hex") === this.hashValue) {
+          // Emit success event
+          if (
+            this.options !== undefined &&
+            this.options.observer !== undefined
+          ) {
+            this.options.observer.emit("success", this.info, this);
+          }
+          return resolve(this.info);
+        }
+
+        // Emit retry event
+        if (this.options !== undefined && this.options.observer !== undefined) {
+          this.options.observer.emit("retry", this.info, this.attempt, this);
+        }
+
+        this.stack.push(this.createSubprocess());
+        this.attempt++;
+      }
+
+      // If reach the limit
+      if (this.attempt === maxAttempt) {
+        if (this.options !== undefined && this.options.observer !== undefined) {
+          this.options.observer.emit("corrupted", this.info, this);
+        }
+        // Then reject the attempt
+        return reject(
+          new Error(
+            `Maximum attempt (${this.attempt} over ${this.options.maxAttempt}). The downloading file is broken or check your input hash`
+          )
+        );
+      }
+    });
+  }
+
+  public getDownloadInfo() {
+    return this.info;
+  }
+}
+
+/**
+ * Represents an abbreviation for create a new instance of {@link DownloadMatchingProcess}.
+ *
+ *
+ * @param info the download info.
+ * @param hashValue the hash value to check after the file is downloaded.
+ * @param options a download options.
+ * @returns a new instance of {@link DownloadMatchingProcess}.
+ */
+export function createAttemptDownload(
+  info: DownloadInfo,
+  hashValue: string,
+  options?: DownloadMatchingOptions
+) {
+  return new DownloadMatchingProcess(info, hashValue, options);
 }

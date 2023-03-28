@@ -1,9 +1,14 @@
-import { LauncherWorkspace } from "../workspace";
+import { LauncherWorkspace, VersionWorkspace } from "../workspace";
 import { getTestDirectoryPath } from "./utils/testOutput";
 import * as path from "path";
-import { existsSync, readFileSync } from "fs-extra";
+import { emptyDir, existsSync, readFileSync, remove } from "fs-extra";
 import { expect } from "chai";
+import { use } from "chai";
+import * as chaiAsPromised from "chai-as-promised";
 import fetch from "node-fetch";
+import { version } from "..";
+
+use(chaiAsPromised);
 
 describe("[unit] workspace", () => {
   let launcherWorkspace: LauncherWorkspace;
@@ -86,5 +91,152 @@ describe("[unit] workspace", () => {
     );
 
     expect(existsSync(destination)).to.be.true;
+  });
+
+  describe(`VersionWorkspace`, () => {
+    let versionWorkspace: VersionWorkspace | undefined;
+
+    before(async () => {
+      versionWorkspace = launcherWorkspace.getVersionWorkspace();
+
+      expect(await versionWorkspace.existsManifest()).to.be.false;
+      return Promise.all([
+        emptyDir(versionWorkspace.getDirectory().toString()),
+        expect(versionWorkspace.readManifest()).to.be.rejected,
+      ]);
+    });
+
+    it(`should return a path of a manifest file`, () => {
+      expect(versionWorkspace.getManifestPath()).to.be.eq(
+        path.join(
+          launcherWorkspace.getDirectory().toString(),
+          "versions",
+          "version_manifest_v2.json"
+        )
+      );
+    });
+
+    it(`should reject with invalid write`, async () => {
+      // Write invalid file
+      await versionWorkspace.writeManifest(Buffer.from("Hello world"));
+      return Promise.all([
+        // Invalid json token
+        expect(versionWorkspace.readManifest()).to.rejected,
+      ]);
+    });
+
+    it(`should resolve with valid json file write operation`, async () => {
+      // Write a json file
+      await versionWorkspace.writeManifest(
+        Buffer.from(JSON.stringify({ a: "b" }).toString())
+      );
+      return Promise.all([
+        // Then check exists
+        expect(versionWorkspace.existsManifest()).to.eventually.be.true,
+        // And must have an "a" property
+        expect(versionWorkspace.readManifest()).to.eventually.have.property(
+          "a"
+        ),
+      ]);
+    });
+
+    it(`should be able to download a manifest and put as a file`, async () => {
+      const manifest = await (
+        await version.fetchVersionManifest()
+      ).getRawManifest();
+
+      await versionWorkspace.writeManifest(
+        Buffer.from(JSON.stringify(manifest))
+      );
+
+      return expect(versionWorkspace.readManifest()).to.eventually.have.keys([
+        "latest",
+        "versions",
+      ]);
+    });
+
+    it(`should return when getPackageDirectory`, async function () {
+      const pkgDir = launcherWorkspace
+        .getVersionWorkspace()
+        .getPackageDirectory();
+      return Promise.all([
+        expect(pkgDir).to.eventually.be.a("string"),
+        expect(pkgDir)
+          .to.eventually.include("versions")
+          .and.include("packages"),
+      ]);
+    });
+
+    it(`should return if it does not have a package version`, async () => {
+      const hasPackageVersion = launcherWorkspace
+        .getVersionWorkspace()
+        .hasPackageVersion("some-package-version");
+      return expect(hasPackageVersion).to.eventually.be.false;
+    });
+
+    it(`should return if it have package version`, async () => {
+      // save the package file first
+      const versionPackage = await (
+        await (await version.fetchVersionManifest())
+          .getLatestReleasePackageInfo()
+          .fetchPackage()
+      ).getVersionPackage();
+
+      // write a version package file into workspace
+      await launcherWorkspace
+        .getVersionWorkspace()
+        .writeVersionPackage(
+          versionPackage.id,
+          Buffer.from(JSON.stringify(versionPackage))
+        );
+
+      const hasPackageVersion = launcherWorkspace
+        .getVersionWorkspace()
+        .hasPackageVersion(versionPackage.id);
+      return expect(hasPackageVersion).to.eventually.be.true;
+    });
+
+    it(`should read a version package and return VersionPackage object`, async () => {
+      // save the package file first
+      const versionPackage = (
+        await (await version.fetchVersionManifest())
+          .getLatestReleasePackageInfo()
+          .fetchPackage()
+      ).getVersionPackage();
+
+      // write a version package file into workspace
+      await launcherWorkspace
+        .getVersionWorkspace()
+        .writeVersionPackage(
+          versionPackage.id,
+          Buffer.from(JSON.stringify(versionPackage))
+        );
+
+      return expect(
+        launcherWorkspace
+          .getVersionWorkspace()
+          .readVersionPackage(versionPackage.id)
+      ).to.eventually.be.deep.equal(versionPackage);
+    });
+
+    it(`should throw when read an non-exists version package`, () => {
+      return expect(
+        launcherWorkspace
+          .getVersionWorkspace()
+          .readVersionPackage("null-defined-or-undefined")
+      ).to.be.rejectedWith(Error, /Version file path not found: /);
+    });
+
+    it(`should throw for invalid json character `, async () => {
+      await launcherWorkspace
+        .getVersionWorkspace()
+        .writeVersionPackage(
+          "x.y.z",
+          Buffer.from("this is an invalid json format buffer")
+        );
+      return expect(
+        launcherWorkspace.getVersionWorkspace().readVersionPackage("x.y.z")
+      ).to.be.rejectedWith(Error, /Unexpected token/);
+    });
   });
 });
