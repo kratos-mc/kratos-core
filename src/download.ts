@@ -494,6 +494,15 @@ export class DownloadMatchingProcess {
   }
 }
 
+/**
+ * Represents an abbreviation for create a new instance of {@link DownloadMatchingProcess}.
+ *
+ *
+ * @param info the download info.
+ * @param hashValue the hash value to check after the file is downloaded.
+ * @param options a download options.
+ * @returns a new instance of {@link DownloadMatchingProcess}.
+ */
 export function createAttemptDownload(
   info: DownloadInfo,
   hashValue: string,
