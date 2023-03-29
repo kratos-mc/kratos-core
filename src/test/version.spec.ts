@@ -1,6 +1,7 @@
 import { version } from "./../index";
 import { expect } from "chai";
 import { AssetIndexManager, AssetMetadata, VersionPlatform } from "../version";
+import * as path from "path";
 
 describe("[unit] manifest -", () => {
   let versionManager: version.VersionManager;
