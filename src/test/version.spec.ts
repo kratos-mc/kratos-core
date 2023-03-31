@@ -241,10 +241,8 @@ describe("[unit] manifest -", () => {
         expect(
           assetIndexManager.buildAssetDownloadUrl(firstAssetMetadata).pathname
         ).to.include(
-          path.join(
-            firstAssetMetadata.hash.slice(0, 2),
-            firstAssetMetadata.hash
-          )
+          // since this is an url
+          firstAssetMetadata.hash.slice(0, 2) + "/" + firstAssetMetadata.hash
         );
 
         const pathSuffix =
