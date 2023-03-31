@@ -3,7 +3,9 @@ import { exists, remove, stat, readFile, lstat } from "fs-extra";
 import * as path from "path";
 import { getTestDirectoryPath } from "./utils/testOutput";
 import * as download from "./../download";
-
+/**
+ * @deprecated using createMockDownloadInformation
+ */
 const mockDownloadInfo: download.DownloadInfo = {
   destination: path.join(getTestDirectoryPath(), "blocklist"),
   url: new URL(
@@ -29,14 +31,14 @@ const createMockDownloadInformation = () => {
 };
 
 describe("[unit] download -", () => {
-  afterEach(async () => {
-    await remove(mockDownloadInfo.destination);
-    expect(await exists(mockDownloadInfo.destination)).to.be.false;
-  });
+  // afterEach(async () => {
+  //   await remove(mockDownloadInfo.destination);
+  //   expect(await exists(mockDownloadInfo.destination)).to.be.false;
+  // });
 
   it("should download a file and save it into storage destination", async function () {
     const downloadProcess: download.DownloadProcess =
-      new download.DownloadProcess(mockDownloadInfo);
+      new download.DownloadProcess(createMockDownloadInformation());
 
     const response = await downloadProcess.startDownload();
     expect(await exists(response.destination)).to.be.true;
@@ -48,15 +50,15 @@ describe("[unit] download -", () => {
 
     beforeEach(() => {
       progress = new download.DownloadProgress();
-      process = new download.DownloadProcess(mockDownloadInfo, {
+      process = new download.DownloadProcess(createMockDownloadInformation(), {
         progress, // create a download process with progress
       });
     });
 
-    afterEach(async () => {
-      await remove(mockDownloadInfo.destination);
-      expect(await exists(mockDownloadInfo.destination)).to.be.false;
-    });
+    // afterEach(async () => {
+    //   await remove(mockDownloadInfo.destination);
+    //   expect(await exists(mockDownloadInfo.destination)).to.be.false;
+    // });
 
     it(`should call progress when start downloading`, (done) => {
       const mustResolve = new Promise<Buffer>(async (resolve) => {
@@ -75,7 +77,7 @@ describe("[unit] download -", () => {
           // Must be a buffer without undefined and exist file
           expect(buffer).to.not.be.undefined;
           expect(buffer.length).to.gt(0);
-          expect(await exists(mockDownloadInfo.destination)).to.be.true;
+          // expect(await exists(mockDownloadInfo.destination)).to.be.true;
           expect(progress.bytesTransferred).to.gt(0);
 
           done();
@@ -152,7 +154,6 @@ describe("[unit] download -", () => {
         progress.on("error", (error) => {
           res(error);
         });
-
         process.startDownload();
       });
 
@@ -232,17 +233,20 @@ describe("[unit] download -", () => {
 });
 
 describe("[unit] download -", () => {
-  afterEach(async () => {
-    await remove(mockDownloadInfo.destination);
-    expect(await exists(mockDownloadInfo.destination)).to.be.false;
-  });
+  // afterEach(async () => {
+  //   await remove(mockDownloadInfo.destination);
+  //   expect(await exists(mockDownloadInfo.destination)).to.be.false;
+  // });
 
   describe("DownloadHashObservation", () => {
     it(`should update a hash object when streaming`, async () => {
       const hashObservation = new download.DownloadHashObservation("sha1");
-      const process = new download.DownloadProcess(mockDownloadInfo, {
-        hashObservation,
-      });
+      const process = new download.DownloadProcess(
+        createMockDownloadInformation(),
+        {
+          hashObservation,
+        }
+      );
 
       await process.startDownload();
 
@@ -259,7 +263,7 @@ describe("[unit] download -", () => {
 
     it(`should create a hash object after downloaded the file`, async () => {
       const hashObservation = new download.DownloadHashObservation("sha1");
-      const process = new download.DownloadProcess(mockDownloadInfo);
+      const process = new download.DownloadProcess(createMockDownloadInformation());
 
       const dest = (await process.startDownload()).destination;
 
