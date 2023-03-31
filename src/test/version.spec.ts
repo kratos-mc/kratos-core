@@ -1,6 +1,7 @@
 import { version } from "./../index";
 import { expect } from "chai";
 import { AssetIndexManager, AssetMetadata, VersionPlatform } from "../version";
+import * as path from "path";
 
 describe("[unit] manifest -", () => {
   let versionManager: version.VersionManager;
@@ -240,13 +241,17 @@ describe("[unit] manifest -", () => {
         expect(
           assetIndexManager.buildAssetDownloadUrl(firstAssetMetadata).pathname
         ).to.include(
+          // since this is an url
           firstAssetMetadata.hash.slice(0, 2) + "/" + firstAssetMetadata.hash
         );
 
         const pathSuffix =
           assetIndexManager.buildPathSuffix(firstAssetMetadata);
         expect(pathSuffix).to.include(
-          firstAssetMetadata.hash.slice(0, 2) + "/" + firstAssetMetadata.hash
+          path.join(
+            firstAssetMetadata.hash.slice(0, 2),
+            firstAssetMetadata.hash
+          )
         );
       });
     });

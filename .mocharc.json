@@ -1,4 +1,4 @@
 {
-  "require": ["ts-node/register", "./src/test/fixtures.ts"],
+  "require": ["@swc-node/register", "./src/test/fixtures.ts"],
   "reporter": "list"
 }
