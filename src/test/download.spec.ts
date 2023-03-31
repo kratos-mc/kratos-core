@@ -139,7 +139,7 @@ describe("[unit] download -", () => {
         .catch(done);
     });
 
-    it(`should call when trying to download invalid url`, (done) => {
+    it(`should call when trying to download invalid url`, () => {
       process = new download.DownloadProcess(
         {
           destination: path.join(getTestDirectoryPath(), "blocklist"),
@@ -157,14 +157,7 @@ describe("[unit] download -", () => {
         process.startDownload();
       });
 
-      resolver
-        .then((error: Error) => {
-          expect(error).not.to.be.undefined;
-          expect(error.message).not.to.be.undefined;
-          expect(error.message).to.includes("request to");
-          done();
-        })
-        .catch(done);
+      return expect(resolver).to.eventually.instanceOf(Error);
     });
   });
 
@@ -181,23 +174,13 @@ describe("[unit] download -", () => {
     }).to.throws(/Invalid download info/);
   });
 
-  it(`should reject when trying to download invalid url`, (done) => {
+  it(`should reject when trying to download invalid url`, () => {
     const process = new download.DownloadProcess({
       destination: path.join(getTestDirectoryPath(), "blocklist"),
       url: new URL("https://download"),
     });
 
-    process
-      .startDownload()
-      .catch((error) => {
-        expect(error).not.to.be.undefined;
-        expect(error.message).not.to.be.undefined;
-
-        expect(error.message).to.include("request to");
-
-        done();
-      })
-      .catch(done);
+    return expect(process.startDownload()).to.rejectedWith(Error, /request to/);
   });
 
   it(`should reject when http response not ok (2xx)`, (done) => {
@@ -263,7 +246,9 @@ describe("[unit] download -", () => {
 
     it(`should create a hash object after downloaded the file`, async () => {
       const hashObservation = new download.DownloadHashObservation("sha1");
-      const process = new download.DownloadProcess(createMockDownloadInformation());
+      const process = new download.DownloadProcess(
+        createMockDownloadInformation()
+      );
 
       const dest = (await process.startDownload()).destination;
 
