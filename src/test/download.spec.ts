@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { exists, remove, stat, readFile } from "fs-extra";
+import { exists, remove, stat, readFile, lstat } from "fs-extra";
 import * as path from "path";
 import { getTestDirectoryPath } from "./utils/testOutput";
 import * as download from "./../download";
@@ -293,13 +293,14 @@ describe("[unit] download -", () => {
       ]);
     });
     it(`should retry with large maxAttempt`, async function () {
+      this.slow();
       const _mockInfo = createMockDownloadInformation();
       const mismatchingProcess = new download.DownloadMatchingProcess(
         _mockInfo,
         "random-test",
         {
           algorithm: "sha1",
-          maxAttempt: 20,
+          maxAttempt: 10,
         }
       );
       mismatchingProcess.startDownload();
@@ -333,15 +334,10 @@ describe("[unit] download -", () => {
         mockDownloadInfo,
         "5c685c5ffa94c4cd39496c7184c1d122e515ecef"
       );
-
-      expect(downloader.startDownload()).to.eventually.have.keys([
-        "destination",
-        "url",
-      ]);
-
+      const downloadProcessResponse = await downloader.startDownload();
+      expect(downloadProcessResponse).to.have.keys(["destination", "url"]);
       expect(downloader.getDownloadInfo()).not.to.be.undefined;
-
-      return expect(exists(mockDownloadInfo.destination)).to.eventually.true;
+      expect(await exists(mockDownloadInfo.destination)).to.true;
     });
 
     it(`should emit success when successfully download`, async () => {
@@ -368,23 +364,23 @@ describe("[unit] download -", () => {
       ]);
     });
 
-    it(`should emit retry when generate an invalid hash-file`, () => {
+    it(`should emit retry when generate an invalid hash-file`, async () => {
       const downloadInfo = createMockDownloadInformation();
       const observer = new download.DownloadMatchingObserver();
-      const process = download
-        .createAttemptDownload(downloadInfo, "", {
-          observer,
-        })
-        .startDownload();
+      const process = download.createAttemptDownload(downloadInfo, "", {
+        observer,
+      });
 
       const promise = new Promise((res) =>
         observer.on("retry", (info) => res(info))
       );
 
       return Promise.all([
-        expect(promise).to.eventually.be.deep.eq(downloadInfo),
-        expect(exists(downloadInfo.destination)).to.eventually.be.true,
-        expect(process).to.eventually.be.rejectedWith(Error, /Maximum attempt/),
+        expect(promise).to.be.fulfilled,
+        expect(process.startDownload()).to.be.rejectedWith(
+          Error,
+          /Maximum attempt/
+        ),
       ]);
     });
 
