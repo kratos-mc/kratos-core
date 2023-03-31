@@ -249,7 +249,9 @@ describe("[unit] manifest -", () => {
         const pathSuffix =
           assetIndexManager.buildPathSuffix(firstAssetMetadata);
         expect(pathSuffix).to.include(
-          firstAssetMetadata.hash.slice(0, 2) + "/" + firstAssetMetadata.hash
+          firstAssetMetadata.hash.slice(0, 2) +
+            path.sep +
+            firstAssetMetadata.hash
         );
       });
     });
