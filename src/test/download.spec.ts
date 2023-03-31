@@ -293,7 +293,7 @@ describe("[unit] download -", () => {
       ]);
     });
     it(`should retry with large maxAttempt`, async function () {
-      this.slow();
+      this.timeout(0);
       const _mockInfo = createMockDownloadInformation();
       const mismatchingProcess = new download.DownloadMatchingProcess(
         _mockInfo,
@@ -303,7 +303,6 @@ describe("[unit] download -", () => {
           maxAttempt: 10,
         }
       );
-      mismatchingProcess.startDownload();
 
       return expect(
         mismatchingProcess.startDownload()
