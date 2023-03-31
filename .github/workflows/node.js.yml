@@ -31,8 +31,5 @@ jobs:
 
       # Install, build and test
       - run: yarn install --frozen-lockfile
-        shell: cmd
       - run: yarn run build
-        shell: cmd
       - run: yarn test
-        shell: cmd
