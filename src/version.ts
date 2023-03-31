@@ -475,7 +475,7 @@ export class AssetIndexManager {
    */
   public buildAssetDownloadUrl(assetMetadata: AssetMetadata) {
     const url = new URL(this.getResourceUrl());
-    url.pathname = assetMetadata.hash.slice(0, 2) + "/" + assetMetadata.hash;
+    url.pathname = assetMetadata.hash.slice(0, 2) + sep + assetMetadata.hash;
 
     return url;
   }
