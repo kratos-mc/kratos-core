@@ -302,14 +302,11 @@ describe("[unit] download -", () => {
           maxAttempt: 20,
         }
       );
+      mismatchingProcess.startDownload();
 
-      return Promise.all([
-        // Must reject
-        expect(mismatchingProcess.startDownload()).to.eventually.rejectedWith(
-          Error,
-          /Maximum attempt/
-        ),
-      ]);
+      return expect(
+        mismatchingProcess.startDownload()
+      ).to.eventually.rejectedWith(Error, /Maximum attempt/);
     });
 
     it(`should resolve the download file`, async () => {
@@ -328,7 +325,7 @@ describe("[unit] download -", () => {
 
           expect(exists(_mockInfo.destination)).to.eventually.true,
         ])
-      ).to.eventually.fulfilled;
+      );
     });
 
     it(`should download using createAttemptDownload`, async function () {
@@ -364,13 +361,11 @@ describe("[unit] download -", () => {
         observer.on("success", (info) => res(info))
       );
 
-      return expect(
-        Promise.all([
-          expect(promise).to.eventually.be.deep.eq(downloadInfo),
-          expect(exists(downloadInfo.destination)).to.eventually.be.true,
-          expect(process).to.eventually.be.deep.eq(downloadInfo),
-        ])
-      ).to.fulfilled;
+      return Promise.all([
+        expect(promise).to.eventually.be.deep.eq(downloadInfo),
+        expect(exists(downloadInfo.destination)).to.eventually.be.true,
+        expect(process).to.eventually.be.deep.eq(downloadInfo),
+      ]);
     });
 
     it(`should emit retry when generate an invalid hash-file`, () => {
@@ -386,16 +381,11 @@ describe("[unit] download -", () => {
         observer.on("retry", (info) => res(info))
       );
 
-      return expect(
-        Promise.all([
-          expect(promise).to.eventually.be.deep.eq(downloadInfo),
-          expect(exists(downloadInfo.destination)).to.eventually.be.true,
-          expect(process).to.eventually.be.rejectedWith(
-            Error,
-            /Maximum attempt/
-          ),
-        ])
-      ).to.fulfilled;
+      return Promise.all([
+        expect(promise).to.eventually.be.deep.eq(downloadInfo),
+        expect(exists(downloadInfo.destination)).to.eventually.be.true,
+        expect(process).to.eventually.be.rejectedWith(Error, /Maximum attempt/),
+      ]);
     });
 
     it(`should emit corrupted when failed to download the file (file is invalid)`, () => {
@@ -420,7 +410,7 @@ describe("[unit] download -", () => {
             /Maximum attempt/
           ),
         ])
-      ).to.fulfilled;
+      );
     });
   });
 });

@@ -1,6 +1,6 @@
 import { Preconditions } from "./utils";
 import fetch, { RequestInit } from "node-fetch";
-import { createWriteStream, exists, remove } from "fs-extra";
+import { createWriteStream } from "fs-extra";
 import { EventEmitter } from "events";
 import TypedEmitter from "typed-emitter";
 import { createHash, Hash } from "crypto";
@@ -129,7 +129,9 @@ export class DownloadProcess {
   public startDownload(init?: RequestInit) {
     return new Promise<DownloadInfo>(async (resolve, reject) => {
       try {
-        const writer = createWriteStream(this.info.destination);
+        const writer = createWriteStream(this.info.destination, {
+          mode: 0o777,
+        });
 
         // Reject the promise when create writer got error
         writer.on("error", async (error) => {
