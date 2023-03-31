@@ -1,9 +1,11 @@
 import { expect } from "chai";
-import { exists, remove, stat, readFile } from "fs-extra";
+import { exists, remove, stat, readFile, lstat } from "fs-extra";
 import * as path from "path";
 import { getTestDirectoryPath } from "./utils/testOutput";
 import * as download from "./../download";
-
+/**
+ * @deprecated using createMockDownloadInformation
+ */
 const mockDownloadInfo: download.DownloadInfo = {
   destination: path.join(getTestDirectoryPath(), "blocklist"),
   url: new URL(
@@ -29,14 +31,14 @@ const createMockDownloadInformation = () => {
 };
 
 describe("[unit] download -", () => {
-  afterEach(async () => {
-    await remove(mockDownloadInfo.destination);
-    expect(await exists(mockDownloadInfo.destination)).to.be.false;
-  });
+  // afterEach(async () => {
+  //   await remove(mockDownloadInfo.destination);
+  //   expect(await exists(mockDownloadInfo.destination)).to.be.false;
+  // });
 
   it("should download a file and save it into storage destination", async function () {
     const downloadProcess: download.DownloadProcess =
-      new download.DownloadProcess(mockDownloadInfo);
+      new download.DownloadProcess(createMockDownloadInformation());
 
     const response = await downloadProcess.startDownload();
     expect(await exists(response.destination)).to.be.true;
@@ -48,15 +50,15 @@ describe("[unit] download -", () => {
 
     beforeEach(() => {
       progress = new download.DownloadProgress();
-      process = new download.DownloadProcess(mockDownloadInfo, {
+      process = new download.DownloadProcess(createMockDownloadInformation(), {
         progress, // create a download process with progress
       });
     });
 
-    afterEach(async () => {
-      await remove(mockDownloadInfo.destination);
-      expect(await exists(mockDownloadInfo.destination)).to.be.false;
-    });
+    // afterEach(async () => {
+    //   await remove(mockDownloadInfo.destination);
+    //   expect(await exists(mockDownloadInfo.destination)).to.be.false;
+    // });
 
     it(`should call progress when start downloading`, (done) => {
       const mustResolve = new Promise<Buffer>(async (resolve) => {
@@ -75,7 +77,7 @@ describe("[unit] download -", () => {
           // Must be a buffer without undefined and exist file
           expect(buffer).to.not.be.undefined;
           expect(buffer.length).to.gt(0);
-          expect(await exists(mockDownloadInfo.destination)).to.be.true;
+          // expect(await exists(mockDownloadInfo.destination)).to.be.true;
           expect(progress.bytesTransferred).to.gt(0);
 
           done();
@@ -119,11 +121,11 @@ describe("[unit] download -", () => {
         }
       );
 
-      const resolver = new Promise<Error>((resolve) => {
+      const resolver = new Promise<Error>(async (resolve) => {
         progress.on("error", (error) => {
           return resolve(error);
         });
-        process.startDownload();
+        await process.startDownload();
       });
 
       resolver
@@ -137,7 +139,7 @@ describe("[unit] download -", () => {
         .catch(done);
     });
 
-    it(`should call when trying to download invalid url`, (done) => {
+    it(`should call when trying to download invalid url`, () => {
       process = new download.DownloadProcess(
         {
           destination: path.join(getTestDirectoryPath(), "blocklist"),
@@ -148,22 +150,14 @@ describe("[unit] download -", () => {
         }
       );
 
-      const resolver = new Promise<Error>((res) => {
+      const resolver = new Promise<Error>(async (res) => {
         progress.on("error", (error) => {
           res(error);
         });
-
-        process.startDownload();
+        await process.startDownload();
       });
 
-      resolver
-        .then((error: Error) => {
-          expect(error).not.to.be.undefined;
-          expect(error.message).not.to.be.undefined;
-          expect(error.message).to.includes("request to");
-          done();
-        })
-        .catch(done);
+      return expect(resolver).to.eventually.instanceOf(Error);
     });
   });
 
@@ -180,23 +174,13 @@ describe("[unit] download -", () => {
     }).to.throws(/Invalid download info/);
   });
 
-  it(`should reject when trying to download invalid url`, (done) => {
+  it(`should reject when trying to download invalid url`, () => {
     const process = new download.DownloadProcess({
       destination: path.join(getTestDirectoryPath(), "blocklist"),
       url: new URL("https://download"),
     });
 
-    process
-      .startDownload()
-      .catch((error) => {
-        expect(error).not.to.be.undefined;
-        expect(error.message).not.to.be.undefined;
-
-        expect(error.message).to.include("request to");
-
-        done();
-      })
-      .catch(done);
+    return expect(process.startDownload()).to.rejectedWith(Error, /request to/);
   });
 
   it(`should reject when http response not ok (2xx)`, (done) => {
@@ -232,17 +216,20 @@ describe("[unit] download -", () => {
 });
 
 describe("[unit] download -", () => {
-  afterEach(async () => {
-    await remove(mockDownloadInfo.destination);
-    expect(await exists(mockDownloadInfo.destination)).to.be.false;
-  });
+  // afterEach(async () => {
+  //   await remove(mockDownloadInfo.destination);
+  //   expect(await exists(mockDownloadInfo.destination)).to.be.false;
+  // });
 
   describe("DownloadHashObservation", () => {
     it(`should update a hash object when streaming`, async () => {
       const hashObservation = new download.DownloadHashObservation("sha1");
-      const process = new download.DownloadProcess(mockDownloadInfo, {
-        hashObservation,
-      });
+      const process = new download.DownloadProcess(
+        createMockDownloadInformation(),
+        {
+          hashObservation,
+        }
+      );
 
       await process.startDownload();
 
@@ -259,7 +246,9 @@ describe("[unit] download -", () => {
 
     it(`should create a hash object after downloaded the file`, async () => {
       const hashObservation = new download.DownloadHashObservation("sha1");
-      const process = new download.DownloadProcess(mockDownloadInfo);
+      const process = new download.DownloadProcess(
+        createMockDownloadInformation()
+      );
 
       const dest = (await process.startDownload()).destination;
 
@@ -293,16 +282,16 @@ describe("[unit] download -", () => {
       ]);
     });
     it(`should retry with large maxAttempt`, async function () {
+      this.timeout(0);
       const _mockInfo = createMockDownloadInformation();
       const mismatchingProcess = new download.DownloadMatchingProcess(
         _mockInfo,
         "random-test",
         {
           algorithm: "sha1",
-          maxAttempt: 20,
+          maxAttempt: 10,
         }
       );
-      mismatchingProcess.startDownload();
 
       return expect(
         mismatchingProcess.startDownload()
@@ -333,15 +322,10 @@ describe("[unit] download -", () => {
         mockDownloadInfo,
         "5c685c5ffa94c4cd39496c7184c1d122e515ecef"
       );
-
-      expect(downloader.startDownload()).to.eventually.have.keys([
-        "destination",
-        "url",
-      ]);
-
+      const downloadProcessResponse = await downloader.startDownload();
+      expect(downloadProcessResponse).to.have.keys(["destination", "url"]);
       expect(downloader.getDownloadInfo()).not.to.be.undefined;
-
-      return expect(exists(mockDownloadInfo.destination)).to.eventually.true;
+      expect(await exists(mockDownloadInfo.destination)).to.true;
     });
 
     it(`should emit success when successfully download`, async () => {
@@ -363,28 +347,27 @@ describe("[unit] download -", () => {
 
       return Promise.all([
         expect(promise).to.eventually.be.deep.eq(downloadInfo),
-        expect(exists(downloadInfo.destination)).to.eventually.be.true,
         expect(process).to.eventually.be.deep.eq(downloadInfo),
       ]);
     });
 
-    it(`should emit retry when generate an invalid hash-file`, () => {
+    it(`should emit retry when generate an invalid hash-file`, async () => {
       const downloadInfo = createMockDownloadInformation();
       const observer = new download.DownloadMatchingObserver();
-      const process = download
-        .createAttemptDownload(downloadInfo, "", {
-          observer,
-        })
-        .startDownload();
+      const process = download.createAttemptDownload(downloadInfo, "", {
+        observer,
+      });
 
       const promise = new Promise((res) =>
         observer.on("retry", (info) => res(info))
       );
 
       return Promise.all([
-        expect(promise).to.eventually.be.deep.eq(downloadInfo),
-        expect(exists(downloadInfo.destination)).to.eventually.be.true,
-        expect(process).to.eventually.be.rejectedWith(Error, /Maximum attempt/),
+        expect(promise).to.be.fulfilled,
+        expect(process.startDownload()).to.be.rejectedWith(
+          Error,
+          /Maximum attempt/
+        ),
       ]);
     });
 

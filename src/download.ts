@@ -130,7 +130,7 @@ export class DownloadProcess {
     return new Promise<DownloadInfo>(async (resolve, reject) => {
       try {
         const writer = createWriteStream(this.info.destination, {
-          mode: 0o777,
+          mode: 0o755,
         });
 
         // Reject the promise when create writer got error
