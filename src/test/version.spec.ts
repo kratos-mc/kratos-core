@@ -241,17 +241,19 @@ describe("[unit] manifest -", () => {
         expect(
           assetIndexManager.buildAssetDownloadUrl(firstAssetMetadata).pathname
         ).to.include(
-          firstAssetMetadata.hash.slice(0, 2) +
-            path.sep +
+          path.join(
+            firstAssetMetadata.hash.slice(0, 2),
             firstAssetMetadata.hash
+          )
         );
 
         const pathSuffix =
           assetIndexManager.buildPathSuffix(firstAssetMetadata);
         expect(pathSuffix).to.include(
-          firstAssetMetadata.hash.slice(0, 2) +
-            path.sep +
+          path.join(
+            firstAssetMetadata.hash.slice(0, 2),
             firstAssetMetadata.hash
+          )
         );
       });
     });
