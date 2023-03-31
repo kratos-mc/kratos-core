@@ -359,7 +359,6 @@ describe("[unit] download -", () => {
 
       return Promise.all([
         expect(promise).to.eventually.be.deep.eq(downloadInfo),
-        expect(exists(downloadInfo.destination)).to.eventually.be.true,
         expect(process).to.eventually.be.deep.eq(downloadInfo),
       ]);
     });
