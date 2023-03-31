@@ -251,7 +251,6 @@ describe("[unit] manifest -", () => {
         expect(pathSuffix).to.include(
           firstAssetMetadata.hash.slice(0, 2) +
             path.sep +
-            " a" +
             firstAssetMetadata.hash
         );
       });
