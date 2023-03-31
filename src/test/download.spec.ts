@@ -121,11 +121,11 @@ describe("[unit] download -", () => {
         }
       );
 
-      const resolver = new Promise<Error>((resolve) => {
+      const resolver = new Promise<Error>(async (resolve) => {
         progress.on("error", (error) => {
           return resolve(error);
         });
-        process.startDownload();
+        await process.startDownload();
       });
 
       resolver
@@ -150,11 +150,11 @@ describe("[unit] download -", () => {
         }
       );
 
-      const resolver = new Promise<Error>((res) => {
+      const resolver = new Promise<Error>(async (res) => {
         progress.on("error", (error) => {
           res(error);
         });
-        process.startDownload();
+        await process.startDownload();
       });
 
       return expect(resolver).to.eventually.instanceOf(Error);
