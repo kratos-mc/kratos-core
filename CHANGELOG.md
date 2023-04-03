@@ -1,3 +1,17 @@
+#### 0.2.0 (2023-04-03)
+
+##### Documentation Changes
+
+* **Version:**  add doc for new functions of VersionPackageInfo ([dd490a9e](https://github.com/kratos-mc/kratos-core/commit/dd490a9e79a4162c079df10e54f1f25b01a937fa))
+
+##### New Features
+
+* **Version:**  support getting package info from VersionPackageInfoManager ([0a1e9c2d](https://github.com/kratos-mc/kratos-core/commit/0a1e9c2d8f6e3db0ca79836a18e4e2d4549598a2))
+
+##### Other Changes
+
+*  add CHANGELOG.md ([df1e4eb2](https://github.com/kratos-mc/kratos-core/commit/df1e4eb20fc1141754c624ef81b18f1ee6a9741f))
+
 #### 0.2.0 (2023-03-31)
 
 ##### Other Changes
