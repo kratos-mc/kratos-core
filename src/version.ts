@@ -91,6 +91,34 @@ export class VersionManager {
   public getRawManifest(): VersionManifest {
     return this.manifest;
   }
+
+  /**
+   * Retrieves all package info from manifest.
+   *
+   * @returns all package info as an array.
+   */
+  public getAllPackagesInfo(): VersionPackageInfo[] {
+    let arr = [];
+    for (let v of this.getSearchMap().values()) {
+      arr.push(v);
+    }
+
+    return arr;
+  }
+
+  /**
+   * Retrieves a list of version id from manifest.
+   *
+   * @returns get all version id as string.
+   */
+  public getVersions(): string[] {
+    let arr: string[] = [];
+    for (let v of this.getSearchMap().keys()) {
+      arr.push(v);
+    }
+
+    return arr;
+  }
 }
 
 /**
@@ -117,13 +145,15 @@ export interface VersionManifest {
   versions: VersionPackageInfo[];
 }
 
+export type VersionReleaseType = "release" | "snapshot" | "old_beta";
+
 /**
  * Represents a version package information.
  * This object uses for resolving version package
  */
 export interface VersionPackageInfo {
   id: string;
-  type: "release" | "snapshot" | "old_beta";
+  type: VersionReleaseType;
   url: URL;
   time: string;
   releaseTime: string;
@@ -263,7 +293,7 @@ export interface VersionPackage {
   minimumLauncherVersion: number;
   releaseTime: string;
   time: string;
-  type: "snapshot" | "release";
+  type: VersionReleaseType;
 }
 
 export interface VersionPackageLibrary {
