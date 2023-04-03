@@ -1,3 +1,10 @@
+#### 1.0.0 (2023-04-03)
+
+##### New Features
+
+*  update 1.0.0 ([3e748865](https://github.com/kratos-mc/kratos-core/commit/3e74886557200bff5d3d2af11c652ddd437b29f1))
+*  add get all packages info from version.VersionPackageManager ([3f5f4296](https://github.com/kratos-mc/kratos-core/commit/3f5f4296ed76162582f7bcc1c2f7bdaa68c10177))
+
 #### 0.2.0 (2023-04-03)
 
 ##### Documentation Changes
