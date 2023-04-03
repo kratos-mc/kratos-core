@@ -1,5 +1,11 @@
 #### 0.2.0 (2023-03-31)
 
+##### Other Changes
+
+*  add CHANGELOG.md ([df1e4eb2](https://github.com/kratos-mc/kratos-core/commit/df1e4eb20fc1141754c624ef81b18f1ee6a9741f))
+
+#### 0.2.0 (2023-03-31)
+
 ##### Chores
 
 *  update .npmignore to ignore stuffs ([9fadc0ea](https://github.com/kratos-mc/kratos-core/commit/9fadc0eaae1822948deda85c1d2ed52737e9dd97))

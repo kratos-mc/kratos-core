@@ -147,6 +147,18 @@ export class VersionPackageInfoManager {
       await (await fetch(this.packageInfo.url, { method: "get" })).json()
     );
   }
+
+  public getPackageInfo() {
+    return this.packageInfo;
+  }
+
+  public getId() {
+    return this.packageInfo.id;
+  }
+
+  public getPackageType() {
+    return this.packageInfo.type;
+  }
 }
 
 export type VersionPlatform = "linux" | "osx" | "windows";
