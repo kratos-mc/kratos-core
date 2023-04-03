@@ -148,14 +148,29 @@ export class VersionPackageInfoManager {
     );
   }
 
+  /**
+   * Retrieves a package info as Java object. {@link VersionPackageInfo}.
+   *
+   * @returns a raw package info as Java object
+   */
   public getPackageInfo() {
     return this.packageInfo;
   }
 
+  /**
+   * Retrieves a package info id.
+   *
+   * @returns a package info id as string.
+   */
   public getId() {
     return this.packageInfo.id;
   }
 
+  /**
+   * Retrieves a package type. It could be release, snapshot, or old_beta.
+   *
+   * @returns a package type.
+   */
   public getPackageType() {
     return this.packageInfo.type;
   }
