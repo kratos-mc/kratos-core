@@ -1,6 +1,6 @@
 {
   "name": "kratos-core",
-  "version": "0.3.0",
+  "version": "1.0.0",
   "license": "MIT",
   "types": "out/index.d.ts",
   "main": "./out/index.js",
