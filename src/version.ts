@@ -560,6 +560,9 @@ export class AssetMetadataManager {
   private assetMetadata: AssetMetadata;
 
   constructor(assetMetadata: AssetMetadata) {
+    if (assetMetadata === undefined) {
+      throw new Error(`Invalid asset metadata`)
+    }
     this.assetMetadata = assetMetadata;
   }
 
@@ -583,13 +586,12 @@ export class AssetMetadataManager {
   /**
    * Creates a download url for the asset from {@link AssetMetadata}.
    *
-   * @deprecated use {@link AssetMetadataManager}
-   * @param assetMetadata the asset metadata to get a hash
    * @returns the asset downloadable resource
    */
-  public buildAssetDownloadUrl(assetMetadata: AssetMetadata) {
+  public buildAssetDownloadUrl() {
     const url = new URL(this.getResourceUrl());
-    url.pathname = assetMetadata.hash.slice(0, 2) + sep + assetMetadata.hash;
+    url.pathname =
+      this.assetMetadata.hash.slice(0, 2) + sep + this.assetMetadata.hash;
 
     return url;
   }
