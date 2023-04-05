@@ -1,3 +1,17 @@
+#### 1.1.0 (2023-04-05)
+
+##### Bug Fixes
+
+* **Version:**  throw error for undefined constructor params of AssetMetadataManager ([707d3347](https://github.com/kratos-mc/kratos-core/commit/707d3347984821a4536bfabd3bf4e2be09b300c7))
+
+##### Refactors
+
+* **package.json:**  add prepack script ([93ba5073](https://github.com/kratos-mc/kratos-core/commit/93ba5073a620000ea3fe16713e394d6077da4b29))
+
+##### Tests
+
+* **Version:**  add AssetMetadataManager tests ([61cd4495](https://github.com/kratos-mc/kratos-core/commit/61cd4495aa4d1bd052cbf4015f0e1397a342bafd))
+
 #### 1.0.0 (2023-04-03)
 
 ##### New Features

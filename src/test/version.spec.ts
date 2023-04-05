@@ -1,6 +1,11 @@
 import { version } from "./../index";
 import { expect } from "chai";
-import { AssetIndexManager, AssetMetadata, VersionPlatform } from "../version";
+import {
+  AssetIndexManager,
+  AssetMetadata,
+  AssetMetadataManager,
+  VersionPlatform,
+} from "../version";
 import * as path from "path";
 
 describe("[unit] manifest -", () => {
@@ -253,6 +258,53 @@ describe("[unit] manifest -", () => {
             firstAssetMetadata.hash
           )
         );
+      });
+
+      describe("AssetMetadataManager with defined constructor", () => {
+        let assetMetadataManager: AssetMetadataManager;
+        before(async () => {
+          assetIndex = await versionPkg.fetchAssetIndex();
+          expect(assetIndex).not.to.be.undefined;
+          expect(assetIndex.objects).not.to.be.undefined;
+          expect(Object.keys(assetIndex.objects).length).gt(0);
+
+          const firstKey = Object.keys(assetIndex.objects)[0];
+          assetMetadataManager = new AssetMetadataManager(
+            assetIndex.objects[firstKey]
+          );
+        });
+
+        it(`should return proper values`, () => {
+          const firstKey = Object.keys(assetIndex.objects)[0];
+          const fileSize = assetIndex.objects[firstKey].size;
+          const fileHash = assetIndex.objects[firstKey].hash;
+
+          expect(assetMetadataManager.buildPathSuffix()).to.eq(
+            path.join(fileHash.slice(0, 2), fileHash)
+          );
+
+          expect(assetMetadataManager.buildAssetDownloadUrl().toString()).to.eq(
+            "https://resources.download.minecraft.net/" +
+              fileHash.slice(0, 2) +
+              "/" +
+              fileHash
+          );
+
+          expect(assetMetadataManager.getResourceUrl()).to.eq(
+            "https://resources.download.minecraft.net/"
+          );
+
+          expect(assetMetadataManager.getHash()).to.eq(fileHash);
+          expect(assetMetadataManager.getSize()).to.eq(fileSize);
+        });
+      });
+
+      describe("AssetMetadataManager without constructor param", () => {
+        it(`should throw an error`, () => {
+          expect(() => {
+            new AssetMetadataManager(undefined as any);
+          }).to.throws(`Invalid asset metadata`);
+        });
       });
     });
   });

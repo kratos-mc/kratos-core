@@ -1,6 +1,6 @@
 {
   "name": "kratos-core",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "license": "MIT",
   "types": "out/index.d.ts",
   "main": "./out/index.js",
@@ -9,7 +9,8 @@
     "test": "mocha ./src/**/*.spec.ts --exit -c --full-trace",
     "coverage": "nyc npm run test",
     "build": "rimraf ./out && tsc && swc ./out --only **/*.js --ignore './out/*.d.ts' --out-dir ./out -q",
-    "package": "npm run build && rimraf ./out/test"
+    "package": "npm run build && rimraf ./out/test",
+    "prepack": "npm run build"
   },
   "repository": {
     "type": "git",

@@ -17,6 +17,7 @@ import { Preconditions } from "./utils";
 import { VersionManifest, VersionPackage } from "./version";
 
 import * as path from "path";
+import { version } from ".";
 export interface WorkspaceInterface {
   /**
    * Get the current directory
@@ -151,6 +152,11 @@ export class AssetWorkspace extends Workspace {
     super(directory);
   }
 
+  /**
+   * Retrieves sub-directory path for ./<launcher directory>/assets/objects
+   *
+   * @returns a path of sub-directory
+   */
   public getObjectsPath() {
     return join(this.getDirectory().toString(), "objects");
   }

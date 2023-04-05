@@ -1,6 +1,7 @@
 import fetch from "node-fetch";
 import { PathLike } from "fs-extra";
 import { sep } from "path";
+import * as path from "path";
 
 /**
  * Get a minecraft manifest url.
@@ -525,8 +526,9 @@ export class AssetIndexManager {
   }
 
   /**
-   * Create a download url for the asset from {@link AssetMetadata}.
+   * Creates a download url for the asset from {@link AssetMetadata}.
    *
+   * @deprecated use {@link AssetMetadataManager}
    * @param assetMetadata the asset metadata to get a hash
    * @returns the asset downloadable resource
    */
@@ -538,8 +540,9 @@ export class AssetIndexManager {
   }
 
   /**
-   * Build a path suffix represents asset file path.
+   * Builds a path suffix represents asset file path.
    *
+   * @deprecated use {@link AssetMetadataManager}
    * @param assetMetadata an asset metadata to build a suffix path
    * @returns a suffix of path to create file
    */
@@ -550,5 +553,69 @@ export class AssetIndexManager {
     path += assetMetadata.hash;
 
     return path;
+  }
+}
+
+export class AssetMetadataManager {
+  private assetMetadata: AssetMetadata;
+
+  constructor(assetMetadata: AssetMetadata) {
+    if (assetMetadata === undefined) {
+      throw new Error(`Invalid asset metadata`)
+    }
+    this.assetMetadata = assetMetadata;
+  }
+
+  /**
+   * Builds a path suffix represents asset file path.
+   * The examples path correspond /<first-2-hash>/<whole-hash>.
+   *
+   * Examples `/da/da39a3ee5e6b4b0d3255bfef95601890afd80709/`.
+   *
+   * This path was concatenated using path.join()
+   *
+   * @returns a suffix of path to create file
+   */
+  public buildPathSuffix(): PathLike {
+    return path.join(
+      this.assetMetadata.hash.slice(0, 2),
+      this.assetMetadata.hash
+    );
+  }
+
+  /**
+   * Creates a download url for the asset from {@link AssetMetadata}.
+   *
+   * @returns the asset downloadable resource
+   */
+  public buildAssetDownloadUrl() {
+    const url = new URL(this.getResourceUrl());
+    url.pathname =
+      this.assetMetadata.hash.slice(0, 2) + sep + this.assetMetadata.hash;
+
+    return url;
+  }
+
+  /**
+   * The resource url to download resource which sponsored by Minecraft.
+   *
+   * @returns the resource url provided from Minecraft
+   */
+  public getResourceUrl() {
+    return `https://resources.download.minecraft.net/`;
+  }
+
+  /**
+   * Retrieves the hash of asset metadata.
+   */
+  public getHash() {
+    return this.assetMetadata.hash;
+  }
+
+  /**
+   * Retrieves an asset metadata size.
+   */
+  public getSize() {
+    return this.assetMetadata.size;
   }
 }
