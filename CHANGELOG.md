@@ -1,3 +1,17 @@
+#### 1.1.1 (2023-04-05)
+
+##### Documentation Changes
+
+* **Changelog:**  use version 1.1.0 instead of 1.0.2 ([0c535b3f](https://github.com/kratos-mc/kratos-core/commit/0c535b3f4369384007d7cd16cf3e89b282176aea))
+
+##### Bug Fixes
+
+* **download:**  ensure download directory before write ([0e5d0089](https://github.com/kratos-mc/kratos-core/commit/0e5d0089b381c76a8526c6cb2a873dd3cb705c40))
+
+##### Tests
+
+* **Download:**  extend time-out for long-duration test ([4ad5eca1](https://github.com/kratos-mc/kratos-core/commit/4ad5eca14eeea85592cff515526767da4d927bf2))
+
 #### 1.1.0 (2023-04-05)
 
 ##### Bug Fixes
