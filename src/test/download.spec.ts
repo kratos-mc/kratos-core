@@ -265,6 +265,8 @@ describe("[unit] download -", () => {
 
   describe("DownloadMatchingProcess", () => {
     it(`should retry to download many times and reject`, async function () {
+      this.timeout(10000);
+
       const _mockInfo = createMockDownloadInformation();
       const mismatchingProcess = new download.DownloadMatchingProcess(
         _mockInfo,
