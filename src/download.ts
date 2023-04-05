@@ -1,6 +1,7 @@
+import { dirname } from "path";
 import { Preconditions } from "./utils";
 import fetch, { RequestInit } from "node-fetch";
-import { createWriteStream } from "fs-extra";
+import { createWriteStream, ensureDir } from "fs-extra";
 import { EventEmitter } from "events";
 import TypedEmitter from "typed-emitter";
 import { createHash, Hash } from "crypto";
@@ -129,6 +130,11 @@ export class DownloadProcess {
   public startDownload(init?: RequestInit) {
     return new Promise<DownloadInfo>(async (resolve, reject) => {
       try {
+        // Ensure the directory is not empty before download
+        const directoryName = dirname(this.info.destination);
+        await ensureDir(directoryName);
+
+        // Create a writer
         const writer = createWriteStream(this.info.destination, {
           mode: 0o755,
         });
