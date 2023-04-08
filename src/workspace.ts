@@ -1,6 +1,5 @@
 import {
   mkdir,
-  mkdirSync,
   existsSync,
   PathLike,
   createWriteStream,
@@ -68,7 +67,7 @@ export class Workspace implements WorkspaceInterface {
     Preconditions.notNull(directory);
     this.directory = directory;
 
-    !existsSync(this.directory) && mkdirSync(this.directory);
+    !existsSync(this.directory) && ensureDirSync(this.directory.toString());
   }
 
   public getDirectory(): PathLike {
