@@ -251,4 +251,22 @@ describe("`[unit] LibraryWorkspace", () => {
     expect(existsSync(launcherWorkspace.getLibraryWorkspace().getDirectory()))
       .to.be.true;
   });
+
+  it(`should ensure directory when contains pathname`, () => {
+    const launcherWorkspace: workspace.LauncherWorkspace =
+      new LauncherWorkspace(getTestDirectoryPath());
+    const libraryWorkspace = launcherWorkspace.getLibraryWorkspace();
+
+    libraryWorkspace.ensureDirname("a/b/c/d.jar");
+
+    // Unix-like path separator test
+    expect(
+      existsSync(
+        path.join(libraryWorkspace.getDirectory().toString(), "a", "b", "c")
+      )
+    ).to.be.true;
+
+    // non-folder test
+    libraryWorkspace.ensureDirname("z.jar");
+  });
 });
