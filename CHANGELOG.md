@@ -1,3 +1,12 @@
+#### 1.2.0 (2023-04-11)
+
+##### New Features
+
+* **workspace:**
+  *  add ensureDirname for LibraryWorkspace ([595c2852](https://github.com/kratos-mc/kratos-core/commit/595c28521650bc400b21486a8180783ce77ec694))
+  *  add ensureDirname for LibraryWorkspace ([cee6186b](https://github.com/kratos-mc/kratos-core/commit/cee6186b2a3933e0e878697ef275cc4ce3d7eb81))
+  *  add LauncherWorkspace#getLibraryWorkspace ([f9b88632](https://github.com/kratos-mc/kratos-core/commit/f9b8863252bfa43952008600a7d4e436877ad6ba))
+
 #### 1.1.1 (2023-04-05)
 
 ##### Documentation Changes
