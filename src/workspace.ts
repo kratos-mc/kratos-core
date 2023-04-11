@@ -144,6 +144,15 @@ export class LauncherWorkspace extends Workspace {
   public getVersionWorkspace() {
     return this.versionWorkspace;
   }
+
+  /**
+   * Retrieves the instance of library workspace that initialed at constructor.
+   * 
+   * @returns the instance of library workspace.
+   */
+  public getLibraryWorkspace() {
+    return this.libraryWorkspace;
+  }
 }
 
 export class AssetWorkspace extends Workspace {

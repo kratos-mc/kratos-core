@@ -6,7 +6,7 @@ import { expect } from "chai";
 import { use } from "chai";
 import * as chaiAsPromised from "chai-as-promised";
 import fetch from "node-fetch";
-import { version } from "..";
+import { version, workspace } from "..";
 
 use(chaiAsPromised);
 
@@ -238,5 +238,17 @@ describe("[unit] workspace", () => {
         launcherWorkspace.getVersionWorkspace().readVersionPackage("x.y.z")
       ).to.be.rejectedWith(Error, /Unexpected token/);
     });
+  });
+});
+
+describe("`[unit] LibraryWorkspace", () => {
+  it(`should have an access from launcher workspace`, async () => {
+    const launcherWorkspace: workspace.LauncherWorkspace =
+      new LauncherWorkspace(getTestDirectoryPath());
+    // Should be accessible
+    expect(launcherWorkspace.getLibraryWorkspace()).to.not.be.undefined;
+    // Exists
+    expect(existsSync(launcherWorkspace.getLibraryWorkspace().getDirectory()))
+      .to.be.true;
   });
 });
