@@ -10,6 +10,9 @@ import {
   ensureDirSync,
   exists,
   readJson,
+  readJsonSync,
+  writeJsonSync,
+  readdirSync,
 } from "fs-extra";
 import { join, dirname } from "path";
 import { Preconditions } from "./utils";
@@ -156,8 +159,13 @@ export class LauncherWorkspace extends Workspace {
 }
 
 export class AssetWorkspace extends Workspace {
+  private indexesWorkspace: AssetIndexWorkspace;
   constructor(directory: PathLike) {
     super(directory);
+
+    this.indexesWorkspace = new AssetIndexWorkspace(
+      path.join(directory.toString(), "indexes")
+    );
   }
 
   /**
@@ -183,6 +191,19 @@ export class AssetWorkspace extends Workspace {
   ): WriteStream {
     const filePath = join("objects", hash.slice(0, 2), hash);
     return this.createWriter(filePath, options);
+  }
+
+  /**
+   * Retrieves the instance of asset indexes workspace.
+   *
+   * Asset indexes workspace represents `assets/indexes` directory
+   * in minecraft launcher. It contains all asset indexes (mapping) data
+   * for the game to determine which asset must be used for the game.
+   *
+   * @returns the instance of asset indexes workspace
+   */
+  public getAssetIndexesWorkspace() {
+    return this.indexesWorkspace;
   }
 }
 
@@ -330,5 +351,75 @@ class LibraryWorkspace extends Workspace {
     Preconditions.notNull(path);
     const absolutePath = path.resolve(this.getDirectory().toString(), pathname);
     ensureDirSync(dirname(absolutePath));
+  }
+}
+
+class AssetIndexWorkspace extends Workspace {
+  constructor(__: string) {
+    super(__);
+  }
+  /**
+   *
+   * NOTE that the file name does not include any extension
+   *
+   * @param indexId
+   * @returns
+   */
+  public getIndexFilePath(indexId: string) {
+    return path.join(this.getDirectory().toString(), indexId);
+  }
+
+  /**
+   * Finds and retrieves if the asset index of the file from `assets/indexes` is exists.
+   * Otherwise, an Error will be thrown.
+   *
+   * @param indexId the version asset index id, mostly from package info.
+   * @returns the asset index object parsed locally on disk.
+   */
+  public getIndex(indexId: string) {
+    const filePath = this.getIndexFilePath(indexId);
+    if (!existsSync(filePath)) {
+      throw new Error(`Asset index file not exists: ${filePath}`);
+    }
+
+    return readJsonSync(filePath, { throws: true });
+  }
+
+  /**
+   * Writes an asset index file into `assets/indexes/{indexId}`.
+   * The file will be overwritten if it exists.
+   *
+   * @param indexId the version asset index id, mostly from package info.
+   * @param assetIndex the asset index to write over the local disk file.
+   */
+  public writeIndex(indexId: string, assetIndex: version.AssetIndex) {
+    const filePath = this.getIndexFilePath(indexId);
+    writeJsonSync(filePath, assetIndex);
+  }
+
+  /**
+   * Checks whether or not the index file is available on `assets/indexes/{indexId}`.
+   *
+   * @param indexId the version asset index id, mostly from package info.
+   * @returns true if the file is exists, false otherwise.
+   */
+  public hasIndex(indexId: string) {
+    const filePathName = this.getIndexFilePath(indexId);
+    return existsSync(filePathName);
+  }
+
+  /**
+   * Reveals all indexes file available on `assets/indexes/{indexId}`.
+   * The `ignoreFiles` parameter works by using includes string function of JavaScript.
+   *
+   * @param ignoreFiles the filter to eliminate unnecessary files, as an array.
+   * @returns the list of file name which was available on `assets/indexes/{indexId}`
+   */
+  public getAllIndexes(ignoreFiles?: string[]) {
+    let result: string[] = readdirSync(this.getDirectory());
+    if (ignoreFiles !== undefined) {
+      result = result.filter((fileName) => !ignoreFiles.includes(fileName));
+    }
+    return result;
   }
 }

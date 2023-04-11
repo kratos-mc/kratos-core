@@ -183,22 +183,24 @@ describe("[unit] download -", () => {
     return expect(process.startDownload()).to.rejectedWith(Error, /request to/);
   });
 
-  it(`should reject when http response not ok (2xx)`, (done) => {
+  it(`should reject when http response not ok (2xx)`, () => {
     const process = new download.DownloadProcess({
       destination: path.join(getTestDirectoryPath(), "something"),
       url: new URL("https://dummyjson.com/http/404"),
     });
 
-    process
-      .startDownload()
-      .catch((error) => {
-        expect(error).not.to.be.undefined;
-        expect(error.message).not.to.be.undefined;
-        expect(error.message).to.includes("Unable to do HTTP Get with status");
+    return expect(process.startDownload()).to.rejectedWith(
+      Error,
+      /Unable to do HTTP Get/
+    );
+    // .catch((error) => {
+    //   expect(error).not.to.be.undefined;
+    //   expect(error.message).not.to.be.undefined;
+    //   expect(error.message).to.includes("Unable to do HTTP Get with status");
 
-        done();
-      })
-      .catch(done);
+    //   done();
+    // })
+    // .catch(done);
   });
 
   it(`should createDownloadProcess create a new instance of DownloadProcess`, () => {

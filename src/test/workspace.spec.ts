@@ -270,3 +270,49 @@ describe("`[unit] LibraryWorkspace", () => {
     libraryWorkspace.ensureDirname("z.jar");
   });
 });
+
+describe("[unit] AssetIndexWorkspace", () => {
+  let launcherWorkspace: LauncherWorkspace = new workspace.LauncherWorkspace(
+    getTestDirectoryPath()
+  );
+  let assetIndexesWorkspace = launcherWorkspace
+    .getAssetWorkspace()
+    .getAssetIndexesWorkspace();
+  it(`should return correspond path`, () => {
+    // should have a parent directory
+    expect(assetIndexesWorkspace.getDirectory()).to.be.eq(
+      path.join(getTestDirectoryPath(), "assets", "indexes")
+    );
+    // should have a file name
+    expect(assetIndexesWorkspace.getIndexFilePath("3.json")).to.eq(
+      path.join(getTestDirectoryPath(), "assets", "indexes", "3.json")
+    );
+  });
+
+  it(`should read and write a file`, () => {
+    expect(assetIndexesWorkspace.hasIndex("3.json")).to.be.false;
+    expect(() => assetIndexesWorkspace.getIndex("3.json")).to.throws(
+      /Asset index file not exists:/
+    );
+
+    expect(assetIndexesWorkspace.getAllIndexes()).to.have.lengthOf(0);
+
+    // expect it to create a file and write something into it
+    assetIndexesWorkspace.writeIndex("3.json", {
+      objects: { "a/b/c": { hash: "123", size: 3 } },
+    });
+
+    expect(assetIndexesWorkspace.hasIndex("3.json")).to.be.true;
+    const someAssetIndex: version.AssetIndex =
+      assetIndexesWorkspace.getIndex("3.json");
+    expect(someAssetIndex).to.not.be.undefined;
+    expect(someAssetIndex).have.ownProperty("objects");
+
+    // should the getAllIndexes work, and with filter
+    expect(assetIndexesWorkspace.getAllIndexes()).to.be.an("array");
+    expect(assetIndexesWorkspace.getAllIndexes()).to.have.lengthOf(1);
+
+    expect(assetIndexesWorkspace.getAllIndexes(["3.json"])).to.be.an("array");
+    expect(assetIndexesWorkspace.getAllIndexes(["3.json"])).to.have.lengthOf(0);
+  });
+});
