@@ -147,7 +147,7 @@ export class LauncherWorkspace extends Workspace {
 
   /**
    * Retrieves the instance of library workspace that initialed at constructor.
-   * 
+   *
    * @returns the instance of library workspace.
    */
   public getLibraryWorkspace() {
@@ -314,5 +314,21 @@ export class VersionWorkspace extends Workspace {
 class LibraryWorkspace extends Workspace {
   constructor(directory: PathLike) {
     super(directory);
+  }
+
+  /**
+   * Ensures the dirname of the library path to not be exists.
+   *
+   * For examples, if the library pathname is /a/b/c/d.jar,
+   * the function will make a directory `/libraries/a/b/c` if
+   * is not exists. Otherwise, silently do nothing.
+   *
+   *
+   * @param pathname the path of library to ensure a directory
+   */
+  public ensureDirname(pathname: string) {
+    Preconditions.notNull(path);
+    const absolutePath = path.resolve(this.getDirectory().toString(), pathname);
+    ensureDirSync(dirname(absolutePath));
   }
 }
