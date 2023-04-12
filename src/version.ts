@@ -339,7 +339,9 @@ export class VersionPackageManager {
   public getVersionPackage() {
     return this.versionPackage;
   }
-
+  /**
+   * @deprecated unexpected operation for old package.libraries format
+   */
   private buildLibrariesMap() {
     const allPlatforms: VersionPlatform[] = ["linux", "osx", "windows"];
     this.librariesMap = new Map<
@@ -377,6 +379,7 @@ export class VersionPackageManager {
    * Retrieves the library map. If the map is undefined,
    * the function will construct it before return.
    *
+   * @deprecated unexpected operation for old package.libraries format
    * @returns a {@link Map} object
    */
   public getLibrariesMap() {
@@ -389,16 +392,67 @@ export class VersionPackageManager {
   public getLibraries(options?: {
     platform: VersionPlatform;
   }): VersionPackageLibrary[] {
-    let libraries: VersionPackageLibrary[] = [];
-    if (options !== undefined && options.platform !== undefined) {
-      libraries.push(...this.getLibrariesMap().get(options.platform));
-    } else {
-      ["linux", "osx", "windows"].forEach((ele: any) =>
-        libraries.push(...this.getLibrariesMap().get(ele))
-      );
+    // let libraries: VersionPackageLibrary[] = [];
+    // if (options !== undefined && options.platform !== undefined) {
+    //   libraries.push(...this.getLibrariesMap().get(options.platform));
+    // } else {
+    //   ["linux", "osx", "windows"].forEach((ele: any) =>
+    //     libraries.push(...this.getLibrariesMap().get(ele))
+    //   );
+    // }
+    // libraries.push(...this.getLibrariesMap().get("none"));
+
+    const results = [];
+
+    // Iterate over package library and return matched library
+    const packageLibraries = this.versionPackage.libraries;
+
+    // Do assertion for every single library: O(n)
+    for (const library of packageLibraries) {
+      if (library.rules === undefined) {
+        results.push(library);
+        continue;
+      }
+
+      let acceptThisLibrary = true;
+      for (const rule of library.rules) {
+        if (rule.action === "disallow") {
+          if (rule.os === undefined) {
+            acceptThisLibrary = false;
+            continue;
+          }
+
+          if (rule.os.name === undefined && rule.os.version === undefined) {
+            console.log(rule, library);
+
+            throw new Error(`Unexpected library rule case`);
+          }
+
+          if (options === undefined) {
+            acceptThisLibrary = false;
+            continue;
+          }
+
+          acceptThisLibrary = rule.os.name !== options.platform;
+        } else {
+          // rule.action === 'allow'
+          if (
+            rule.os !== undefined &&
+            options !== undefined &&
+            rule.os.name !== options.platform
+          ) {
+            acceptThisLibrary = false;
+          }
+        }
+      }
+
+      if (acceptThisLibrary) {
+        results.push(library);
+        continue;
+      }
     }
-    libraries.push(...this.getLibrariesMap().get("none"));
-    return libraries;
+
+    return results;
   }
 
   public getAssetIndexReference() {
@@ -561,7 +615,7 @@ export class AssetMetadataManager {
 
   constructor(assetMetadata: AssetMetadata) {
     if (assetMetadata === undefined) {
-      throw new Error(`Invalid asset metadata`)
+      throw new Error(`Invalid asset metadata`);
     }
     this.assetMetadata = assetMetadata;
   }
