@@ -7,12 +7,24 @@ import {
   VersionPlatform,
 } from "../version";
 import * as path from "path";
+import { existsSync, readJsonSync, writeJsonSync } from "fs-extra";
+import { getTestDirectoryPath } from "./utils/testOutput";
 
 describe("[unit] manifest -", () => {
   let versionManager: version.VersionManager;
 
   before(async () => {
-    versionManager = await version.fetchVersionManifest();
+    const versionManifestPathName = path.join(
+      getTestDirectoryPath(),
+      "cached_manifest.json"
+    );
+    // If the manifest file was exists
+    if (existsSync(versionManifestPathName)) {
+      versionManager = readJsonSync(versionManifestPathName);
+    } else {
+      versionManager = await version.fetchVersionManifest();
+      writeJsonSync(versionManifestPathName, versionManager.getRawManifest());
+    }
   });
 
   it("should return manifest url ", () => {
@@ -307,5 +319,35 @@ describe("[unit] manifest -", () => {
         });
       });
     });
+  });
+});
+
+describe("[unit] VersionPackageManager", () => {
+  it(`should support older game version`, async () => {
+    const manifest = await version.fetchVersionManifest();
+    const vm = new version.VersionPackageInfoManager(
+      manifest.getPackageInfo("1.12.2")
+    );
+
+    const librariesForMac = (await vm.fetchPackage()).getLibraries({
+      platform: "osx",
+    });
+
+    expect(
+      librariesForMac.findIndex(
+        (library) =>
+          library.name === "org.lwjgl.lwjgl:lwjgl:2.9.4-nightly-20150209"
+      )
+    ).to.eq(-1);
+
+    const librariesForLinux = (await vm.fetchPackage()).getLibraries({
+      platform: "linux",
+    });
+    expect(
+      librariesForLinux.findIndex(
+        (library) =>
+          library.name === "org.lwjgl.lwjgl:lwjgl:2.9.4-nightly-20150209"
+      )
+    ).not.to.eq(-1);
   });
 });
